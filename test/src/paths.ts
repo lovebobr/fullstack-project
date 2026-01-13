@@ -1,0 +1,15 @@
+export const PATHS = {
+  LOGIN: "/login",
+  REGISTER: "/register",
+  HOME: "/",
+  MANAGER: "/manager",
+  ADMIN: "/admin",
+  USER: "/user",
+  RESTAURANT: "/restaurant/:id",
+  BOOKING: "/booking",
+  PAYMENT: "/payment",
+  SMS_VERIFICATION: "/sms-verification",
+  PAYMENT_RESULT: "/payment-result",
+  PROFILE: "/profile",
+  MENU: "/menu",
+};
