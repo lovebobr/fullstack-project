@@ -48,22 +48,27 @@ class ReservationController extends Controller
 
     // POST /api/reservations - создание бронирования
     public function store(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'table_id' => 'required|exists:tables,id',
-                'date_time' => 'required|date|after:now',
-                'price' => 'required|numeric|min:0',
-                'foods' => 'sometimes|array',
-                'foods.*.food_id' => 'required_with:foods|exists:foods,id',
-                'foods.*.quantity' => 'sometimes|integer|min:1|max:20',
-                // НОВЫЕ ПОЛЯ
-                'duration' => 'nullable|integer|min:1|max:8',
-                'user_name' => 'nullable|string|max:255',
-                'user_phone' => 'nullable|string|max:20',
-                'guests_count' => 'nullable|integer|min:1|max:20',
-                'special_requests' => 'nullable|string',
-            ]);
+{
+    try {
+        // Сначала получаем текущего пользователя
+        $user = Auth::user();
+
+        // Определяем максимальную длительность
+        $maxDuration = ($user && ($user->isAdmin() || $user->isManager())) ? 24 : 6;
+
+        $validated = $request->validate([
+            'table_id' => 'required|exists:tables,id',
+            'date_time' => 'required|date|after:now',
+            'price' => 'required|numeric|min:0',
+            'duration' => "required|integer|min:2|max:{$maxDuration}",
+            'foods' => 'sometimes|array',
+            'foods.*.food_id' => 'required_with:foods|exists:foods,id',
+            'foods.*.quantity' => 'sometimes|integer|min:1|max:20',
+            'user_name' => 'nullable|string|max:255',
+            'user_phone' => 'nullable|string|max:20',
+            'guests_count' => 'nullable|integer|min:1|max:20',
+            'special_requests' => 'nullable|string',
+        ]);
 
             $dateTime = $this->normalizeDateTime($validated['date_time']);
             $duration = $validated['duration'] ?? 2;
@@ -233,7 +238,28 @@ class ReservationController extends Controller
             ], 500);
         }
     }
+    
+    public function cancel(Request $request, $id)
+{
+    $reservation = Reservation::findOrFail($id);
+    $user = $request->user();
 
+    if (!$user->isAdmin() && !$user->isManager() && $reservation->user_id !== $user->id) {
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+
+    if ($reservation->status === 'canceled') {
+        return response()->json(['message' => 'Reservation already canceled'], 409);
+    }
+
+    $reservation->update(['status' => 'canceled']);
+
+    return response()->json([
+        'message' => 'Reservation canceled successfully',
+        'reservation' => $reservation
+    ]);
+}
+    
     // POST /api/reservations/check-availability - проверка доступности стола
     public function checkAvailability(Request $request)
     {
@@ -241,7 +267,7 @@ class ReservationController extends Controller
             $validated = $request->validate([
                 'table_id' => 'required|exists:tables,id',
                 'date_time' => 'required|date|after:now',
-                'duration' => 'nullable|integer|min:1|max:8',
+                'duration' => 'required|integer|min:2|max:6',
                 'reservation_id' => 'nullable|exists:reservations,id',
             ]);
 

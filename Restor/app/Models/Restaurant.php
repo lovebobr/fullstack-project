@@ -15,4 +15,9 @@ class Restaurant extends Model
     {
         return $this->hasMany(Table::class);
     }
+    public function managers()
+{
+    return $this->belongsToMany(User::class, 'restaurant_manager', 'restaurant_id', 'manager_id')
+                ->where('role', User::ROLE_MANAGER);
+}
 }

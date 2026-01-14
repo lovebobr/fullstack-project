@@ -63,6 +63,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function managedRestaurants()
+{
+    return $this->belongsToMany(Restaurant::class, 'restaurant_manager', 'manager_id', 'restaurant_id');
+}
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
