@@ -97,6 +97,34 @@ class AdminController extends Controller
         ]);
     }
 
+    // PATCH /api/admin/users/{id}/role
+    public function updateRole(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $currentAdmin = $request->user();
+
+        // Текущий пользователь должен быть админом
+        if (!$currentAdmin->isAdmin()) {
+            return response()->json(['message' => 'Only admin can change roles'], 403);
+        }
+
+        // Админ не может менять роль другого админа
+        if ($user->isAdmin() && $user->id !== $currentAdmin->id) {
+            return response()->json(['message' => 'Cannot change role of another admin'], 422);
+        }
+
+        $validated = $request->validate([
+            'role' => 'required|in:' . User::ROLE_USER . ',' . User::ROLE_MANAGER,
+        ]);
+
+        $user->update(['role' => $validated['role']]);
+
+        return response()->json([
+            'message' => 'Role updated successfully',
+            'user' => $user->only('id', 'name', 'email', 'role')
+        ]);
+    }
+
     // DELETE /api/admin/users/{id} - удаление пользователя
     public function deleteUser($id, Request $request)
     {
@@ -183,5 +211,22 @@ class AdminController extends Controller
         $manager->delete();
 
         return response()->json(['message' => 'Manager deleted successfully']);
+    }
+
+    public function assignManager(Request $request, $restaurantId)
+    {
+        $request->validate(['manager_id' => 'required|exists:users,id']);
+        $restaurant = Restaurant::findOrFail($restaurantId);
+        $manager = User::where('id', $request->manager_id)->where('role', User::ROLE_MANAGER)->firstOrFail();
+
+        $restaurant->managers()->attach($manager);
+        return response()->json(['message' => 'Manager assigned']);
+    }
+
+    public function removeManager($restaurantId, $managerId)
+    {
+        $restaurant = Restaurant::findOrFail($restaurantId);
+        $restaurant->managers()->detach($managerId);
+        return response()->json(['message' => 'Manager removed']);
     }
 }
