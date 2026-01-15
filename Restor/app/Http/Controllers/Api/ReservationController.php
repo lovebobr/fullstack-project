@@ -197,7 +197,10 @@ class ReservationController extends Controller
             $reservation = Reservation::findOrFail($id);
 
             $user = Auth::user();
-            if (!$user || (!$user->isAdmin() && !$user->isManager())) {
+            if (!$user) {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+            if (!$user->isAdmin() && !$user->isManager() && $reservation->user_id !== $user->id) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
 
@@ -238,7 +241,7 @@ class ReservationController extends Controller
             ], 500);
         }
     }
-    
+
     public function cancel(Request $request, $id)
 {
     $reservation = Reservation::findOrFail($id);
@@ -259,7 +262,7 @@ class ReservationController extends Controller
         'reservation' => $reservation
     ]);
 }
-    
+
     // POST /api/reservations/check-availability - проверка доступности стола
     public function checkAvailability(Request $request)
     {
