@@ -12,55 +12,58 @@ import SmsVerificationPage from "./pages/SmsVerificationPage";
 import Profile from "./pages/Profile";
 import HomePage from "./pages/HomePages";
 import MenuPage from "./pages/MenuPages";
+import { CartProvider } from "./CartProvider";
+import CartModal from "../src/app/component/CartModal";
 
 const App = () => {
   return (
     <>
       <GlobalStyle />
+      <CartProvider>
+        <Routes>
+          <Route path={PATHS.HOME} element={<HomePage />} />
+          <Route path={PATHS.MENU} element={<MenuPage />} />
+          <Route path={PATHS.LOGIN} element={<LoginPage />} />
+          <Route path={PATHS.REGISTER} element={<RegisterPage />} />
 
-      <Routes>
-        <Route path={PATHS.HOME} element={<HomePage />} />
-        <Route path={PATHS.MENU} element={<MenuPage />} />
-        <Route path={PATHS.LOGIN} element={<LoginPage />} />
-        <Route path={PATHS.REGISTER} element={<RegisterPage />} />
+          <Route
+            path={PATHS.RESTAURANT}
+            element={
+              <RoleGuard allowedRoles={["user"]}>
+                <RestaurantPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path={PATHS.PROFILE}
+            element={
+              <RoleGuard allowedRoles={["user", "manager", "admin"]}>
+                <Profile />
+              </RoleGuard>
+            }
+          />
 
-        <Route
-          path={PATHS.RESTAURANT}
-          element={
-            <RoleGuard allowedRoles={["user"]}>
-              <RestaurantPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path={PATHS.PROFILE}
-          element={
-            <RoleGuard allowedRoles={["user", "manager", "admin"]}>
-              <Profile />
-            </RoleGuard>
-          }
-        />
+          <Route path={PATHS.PAYMENT} element={<PaymentPage />} />
+          <Route
+            path={PATHS.SMS_VERIFICATION}
+            element={<SmsVerificationPage />}
+          />
+          <Route path={PATHS.PAYMENT_RESULT} element={<PaymentResultPage />} />
+          <Route
+            path={PATHS.MANAGER}
+            element={
+              <RoleGuard allowedRoles={["manager", "admin"]}>
+                <ManagerPage />
+              </RoleGuard>
+            }
+          />
 
-        <Route path={PATHS.PAYMENT} element={<PaymentPage />} />
-        <Route
-          path={PATHS.SMS_VERIFICATION}
-          element={<SmsVerificationPage />}
-        />
-        <Route path={PATHS.PAYMENT_RESULT} element={<PaymentResultPage />} />
+          <Route path="/" element={<Navigate to={PATHS.LOGIN} replace />} />
+          <Route path="*" element={<Navigate to={PATHS.LOGIN} replace />} />
+        </Routes>
 
-        {/* ManagerPage для manager и admin ролей */}
-        <Route
-          path={PATHS.MANAGER}
-          element={
-            <RoleGuard allowedRoles={["manager", "admin"]}>
-              <ManagerPage />
-            </RoleGuard>
-          }
-        />
-
-        <Route path="/" element={<Navigate to={PATHS.LOGIN} replace />} />
-        <Route path="*" element={<Navigate to={PATHS.LOGIN} replace />} />
-      </Routes>
+        <CartModal />
+      </CartProvider>
     </>
   );
 };

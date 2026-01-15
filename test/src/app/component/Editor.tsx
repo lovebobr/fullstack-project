@@ -220,9 +220,9 @@ export const Editor: React.FC<EditorProps> = observer(
       }
     }, [selectedId]);
 
-    // AUTO-SAVE ПОЗИЦИЙ (каждую секунду)
     useEffect(() => {
       if (items.length > 0) {
+        console.log("jhhhh")
         const timeoutId = setTimeout(() => {
           const layoutData = {
             version: "1.0",
@@ -367,10 +367,14 @@ export const Editor: React.FC<EditorProps> = observer(
 
       const nextTableNumber = lastTableNumber + 1;
 
+      // ВСЕГДА ПО ЦЕНТРУ КАНВАСА
+      const centerX = (CANVAS_SIZE.width - template.width) / 2;
+      const centerY = (CANVAS_SIZE.height - template.height) / 2;
+
       const newItem: TableItem = {
         id: generateId(),
-        x: 100 + items.length * 30,
-        y: 100 + items.length * 30,
+        x: centerX, // ← ВСЕГДА ПО ЦЕНТРУ ПО X
+        y: centerY, // ← ВСЕГДА ПО ЦЕНТРУ ПО Y
         width: template.width,
         height: template.height,
         rotation: 0,
@@ -382,6 +386,9 @@ export const Editor: React.FC<EditorProps> = observer(
         tableType: template.type,
       };
 
+      console.log(
+        `✅ Стол №${nextTableNumber} создан в центре: (${centerX}, ${centerY})`
+      );
       setItems((prev) => [...prev, newItem]);
       setSelectedId(newItem.id);
     };

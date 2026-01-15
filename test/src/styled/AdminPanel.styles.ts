@@ -75,7 +75,7 @@ export const MainContent = styled.div`
 
 export const ContentHeader = styled.div`
   background: white;
-  padding: 20px 30px;
+  padding: 11px 30px;
   border-bottom: 1px solid #eaeaea;
   display: flex;
   justify-content: space-between;

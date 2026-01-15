@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { Plus } from "lucide-react";
+import { useCart } from "../../CartProvider";
 
 interface FoodCardProps {
   food: {
@@ -9,16 +10,39 @@ interface FoodCardProps {
     image_url: string;
     calories?: number;
     ingredients?: string;
-    price: number | string; 
+    price: number | string;
   };
-  onAddToCart: (food: any) => void;
+  onAddToCart?: (food: any) => void; // Делаем необязательным
 }
 
 export const FoodCard: React.FC<FoodCardProps> = ({ food, onAddToCart }) => {
+  // Используем хук useCart для доступа к корзине
+  const { addItem } = useCart();
+
   const handleAddClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onAddToCart(food);
+
+    // Получаем цену
+    const price =
+      typeof food.price === "string" ? parseFloat(food.price) : food.price;
+
+    // Добавляем в корзину через контекст
+    addItem({
+      id: food.id,
+      name: food.name,
+      price: price,
+      image: food.image_url,
+      description: food.ingredients,
+      food_id: food.id,
+    });
+
+    // Если есть пропс onAddToCart, вызываем его тоже
+    if (onAddToCart) {
+      onAddToCart(food);
+    }
+
+    console.log("✅ Добавлено в корзину:", food.name);
   };
 
   const price =
@@ -37,7 +61,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ food, onAddToCart }) => {
         {food.ingredients && <Ingredients>{food.ingredients}</Ingredients>}
 
         <CardFooter>
-          <Price>${price.toFixed(2)}</Price> 
+          <Price>${price.toFixed(2)}</Price>
           <AddButton onClick={handleAddClick}>
             <Plus size={18} />В корзину
           </AddButton>
@@ -47,6 +71,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ food, onAddToCart }) => {
   );
 };
 
+// Стили остаются без изменений
 const Card = styled.div`
   background: rgba(40, 40, 40, 0.8);
   border-radius: 12px;

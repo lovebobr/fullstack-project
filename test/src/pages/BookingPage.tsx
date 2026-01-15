@@ -8,13 +8,17 @@ import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/ru";
 import type { TableItem, WallItem, WindowItem } from "../app/component/Editor";
 import { restaurantStore } from "../app/store/restaurant.store";
-import { ReservationService } from "../api/reservation.service";
+import {
+  ReservationService,
+  type Reservation,
+} from "../api/reservation.service";
 import { PATHS } from "../paths";
 import { useNavigate } from "react-router-dom";
 import { TABLE_TEMPLATES, EDITOR_COLORS, CANVAS_SIZE } from "../tables";
 import { useAuth } from "../useAuth";
 import Header from "../app/component/Header";
 import { BookingForm } from "../app/component/BookingForm";
+import { DatePicker, Typography } from "antd";
 
 import {
   BookingContainer,
@@ -34,6 +38,8 @@ import {
   LoadingOverlay,
   LoadingText,
 } from "../styled/Booking.styles";
+
+const { Text } = Typography;
 
 interface BookingPageProps {
   restaurantId: number;
@@ -91,16 +97,15 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
   ({ restaurantId, onClose }) => {
     const navigate = useNavigate();
     const [layoutItems, setLayoutItems] = useState<CanvasItem[]>([]);
-    const [allReservations, setAllReservations] = useState<any[]>([]);
+    const [allReservations, setAllReservations] = useState<Reservation[]>([]);
     const [selectedDateTime, setSelectedDateTime] = useState<Dayjs>(dayjs());
     const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
     const [loading, setLoading] = useState(false);
     const [restaurantName, setRestaurantName] = useState<string>("");
     const [restaurantAddress, setRestaurantAddress] = useState<string>("");
     const [restaurantPhone, setRestaurantPhone] = useState<string>("");
-    const [duration, setDuration] = useState<number>(2); // Добавляем длительность
+    const [duration, setDuration] = useState<number>(2);
     const { user, loading: authLoading } = useAuth();
-    const isAdmin = user?.role === "admin";
 
     useEffect(() => {
       const loadRestaurantData = async () => {
@@ -151,48 +156,48 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
         }
       };
 
-      if (restaurantId) {
+      if (restaurantId && selectedDateTime) {
         loadReservations();
       }
     }, [restaurantId, selectedDateTime]);
 
-    // Функция для проверки, занят ли стол на выбранное время
     const getTableBookingInfo = (
       table: TableItem
     ): {
       isBooked: boolean;
       remainingTime?: string;
       endTime?: Dayjs;
-      activeReservation?: any;
+      activeReservation?: Reservation;
     } => {
       if (!table.tableId) return { isBooked: false };
 
       const selectedTime = selectedDateTime;
+      if (!selectedTime) return { isBooked: false };
 
-      // Ищем только подтвержденные брони (confirmed)
       const activeReservations = allReservations.filter((reservation) => {
         if (reservation.table_id !== table.tableId) return false;
-        if (reservation.status !== "confirmed") return false; // Только подтвержденные
+
+        if (reservation.status !== "confirmed") return false;
 
         const startTime = dayjs(reservation.date_time);
         const duration = reservation.duration || 2;
         const endTime = startTime.add(duration, "hour");
 
-        // Проверяем, попадает ли выбранное время в интервал бронирования
-        return selectedTime.isBetween(startTime, endTime, null, "[)");
+        return (
+          (selectedTime.isAfter(startTime) || selectedTime.isSame(startTime)) &&
+          selectedTime.isBefore(endTime)
+        );
       });
 
       if (activeReservations.length === 0) {
         return { isBooked: false };
       }
 
-      // Берем ближайшую активную бронь
       const activeReservation = activeReservations[0];
       const startTime = dayjs(activeReservation.date_time);
       const reservationDuration = activeReservation.duration || 2;
       const endTime = startTime.add(reservationDuration, "hour");
 
-      // Вычисляем оставшееся время
       const remainingMinutes = endTime.diff(selectedTime, "minute");
       const hours = Math.floor(remainingMinutes / 60);
       const minutes = remainingMinutes % 60;
@@ -209,6 +214,16 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
       };
     };
 
+    const getPendingReservationForTable = (
+      tableId: number
+    ): Reservation | null => {
+      const pendingReservation = allReservations.find(
+        (reservation) =>
+          reservation.table_id === tableId && reservation.status === "pending"
+      );
+      return pendingReservation || null;
+    };
+
     const tablesWithStatus = useMemo(() => {
       return layoutItems
         .filter((item): item is TableItem => {
@@ -216,13 +231,23 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
         })
         .map((table) => {
           const bookingInfo = getTableBookingInfo(table);
-          const isBooked = bookingInfo.isBooked;
+          const pendingReservation = getPendingReservationForTable(
+            table.tableId
+          );
+
+          let displayStatus = "free";
+          if (bookingInfo.isBooked) {
+            displayStatus = "booked";
+          } else if (pendingReservation) {
+            displayStatus = "pending";
+          }
 
           return {
             ...table,
-            isBooked: isBooked,
-            bookingInfo: bookingInfo, // Добавляем информацию о бронировании
-            imageUrl: isBooked
+            bookingInfo: bookingInfo,
+            hasPendingReservation: !!pendingReservation,
+            displayStatus: displayStatus,
+            imageUrl: bookingInfo.isBooked
               ? TABLE_TEMPLATES.find((t) => t.type === table.tableType)
                   ?.bookedImageUrl || table.imageUrl
               : TABLE_TEMPLATES.find((t) => t.type === table.tableType)
@@ -232,31 +257,45 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
     }, [layoutItems, allReservations, selectedDateTime]);
 
     const handleTableClick = (table: TableItem) => {
-      // Проверяем доступность стола
       const bookingInfo = getTableBookingInfo(table);
-      if (bookingInfo.isBooked) {
+
+      if (bookingInfo.isBooked && bookingInfo.remainingTime) {
         alert(
           `Стол №${table.tableNumber} занят. Занят еще: ${bookingInfo.remainingTime}`
         );
         return;
       }
+
+      const pendingReservation = getPendingReservationForTable(table.tableId);
+      if (pendingReservation) {
+        alert(
+          `Стол №${table.tableNumber} ожидает оплаты бронирования. Пожалуйста, выберите другой столик.`
+        );
+        return;
+      }
+
       setSelectedTable(table);
     };
 
     const handleReserve = async (reservationData: any) => {
-      if (!selectedTable?.tableId) return;
+      if (!selectedTable?.tableId || !selectedDateTime) {
+        alert("Пожалуйста, выберите стол и дату");
+        return;
+      }
 
       try {
-        // Проверяем доступность еще раз перед созданием
+        const dateTimeString = selectedDateTime.format("YYYY-MM-DD HH:mm:ss");
+
         const availability = await ReservationService.checkAvailability(
           selectedTable.tableId,
-          selectedDateTime.format("YYYY-MM-DD HH:mm:ss"),
+          dateTimeString,
           duration
         );
 
         if (!availability.available) {
           alert(
-            "Стол стал недоступен. Пожалуйста, выберите другой столик или время."
+            availability.message ||
+              "Стол уже занят на это время. Пожалуйста, выберите другой столик или время."
           );
           setSelectedTable(null);
           return;
@@ -264,13 +303,13 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
 
         const reservationPayload = {
           table_id: selectedTable.tableId,
-          date_time: selectedDateTime.format("YYYY-MM-DD HH:mm:ss"),
+          date_time: dateTimeString,
           user_name: reservationData.user_name,
           user_phone: reservationData.user_phone,
           guests_count: reservationData.guests_count,
           special_requests: reservationData.special_requests || "",
           duration: duration,
-          price: 100, // Минимальный депозит
+          price: 100,
         };
 
         const newReservation = await ReservationService.create(
@@ -281,7 +320,6 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
           throw new Error("Не получен ID бронирования");
         }
 
-        // Обновляем список бронирований
         const dateStr = selectedDateTime.format("YYYY-MM-DD");
         const updatedReservations = await ReservationService.getByRestaurant(
           restaurantId,
@@ -290,18 +328,26 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
         setAllReservations(updatedReservations);
 
         alert(
-          `Бронирование #${newReservation.id} создано! Переходим к оплате...`
+          `Бронирование #${newReservation.id} создано! Переходим к оплате...\n\n` +
+            `Статус: Ожидает оплаты (pending)\n` +
+            `Стол станет занятым только после подтверждения оплаты.`
         );
 
-        // Переходим на страницу оплаты
         navigate(`${PATHS.PAYMENT}?reservation_id=${newReservation.id}`);
       } catch (error: any) {
         console.error("Детали ошибки:", error.response?.data);
-        alert(
-          `Ошибка: ${
-            error.response?.data?.message || "Не удалось создать бронирование"
-          }`
-        );
+
+        if (error.response?.status === 409) {
+          alert(
+            "Стол уже занят на это время. Пожалуйста, выберите другое время или другой столик."
+          );
+        } else {
+          alert(
+            `Ошибка: ${
+              error.response?.data?.message || "Не удалось создать бронирование"
+            }`
+          );
+        }
       }
     };
 
@@ -313,6 +359,21 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
 
     const handleViewMenu = () => {
       navigate(PATHS.MENU);
+    };
+
+    const handleDurationChange = (newDuration: number) => {
+      if (newDuration >= 1 && newDuration <= 4) {
+        setDuration(newDuration);
+      }
+    };
+
+    const handleDateTimeChange = (date: Dayjs | null) => {
+      if (date) {
+        setSelectedDateTime(date);
+      } else {
+        // Если пользователь очистил выбор, устанавливаем текущую дату
+        setSelectedDateTime(dayjs());
+      }
     };
 
     const renderItem = (item: CanvasItem) => {
@@ -329,7 +390,8 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
             onTableClick={handleTableClick}
             onSelect={() => {}}
             onChange={() => {}}
-            bookingInfo={tableWithStatus.bookingInfo} // Передаем информацию о бронировании
+            bookingInfo={tableWithStatus.bookingInfo}
+            hasPendingReservation={tableWithStatus.hasPendingReservation}
           />
         );
       } else if (item.type === "wall") {
@@ -363,6 +425,15 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
       return null;
     };
 
+    // Получаем отформатированные дату и время с проверкой
+    const formattedDate = selectedDateTime
+      ? selectedDateTime.format("DD.MM.YYYY")
+      : "Дата не выбрана";
+
+    const formattedTime = selectedDateTime
+      ? selectedDateTime.format("HH:mm")
+      : "--:--";
+
     return (
       <BookingContainer>
         <Header
@@ -383,6 +454,125 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
             </PageSubtitle>
           </PageHeader>
 
+          {/* Блок выбора времени и даты */}
+          <div
+            style={{
+              marginBottom: "24px",
+              padding: "24px",
+              backgroundColor: "#f6ffed",
+              borderRadius: "8px",
+              border: "1px solid #b7eb8f",
+            }}
+          >
+            <Text
+              strong
+              style={{
+                display: "block",
+                marginBottom: "12px",
+                fontSize: "16px",
+              }}
+            >
+              Выберите дату и время посещения:
+            </Text>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                flexWrap: "wrap",
+                marginBottom: "16px",
+              }}
+            >
+              <DatePicker
+                showTime
+                format="DD.MM.YYYY HH:mm"
+                value={selectedDateTime}
+                onChange={handleDateTimeChange}
+                style={{ width: 220 }}
+                placeholder="Выберите дату и время"
+                disabledDate={(current) =>
+                  current && current < dayjs().startOf("day")
+                }
+              />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#fff",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid #d9d9d9",
+                }}
+              >
+                <Text strong>{formattedDate}</Text>
+                <Text>в</Text>
+                <Text strong>{formattedTime}</Text>
+              </div>
+            </div>
+
+            {/* Выбор длительности */}
+            <div style={{ marginTop: "16px" }}>
+              <Text
+                strong
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "16px",
+                }}
+              >
+                Длительность посещения:
+              </Text>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "16px" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleDurationChange(duration - 1)}
+                  disabled={duration <= 1}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #d9d9d9",
+                    borderRadius: "4px",
+                    background: "#fff",
+                    cursor: duration > 1 ? "pointer" : "not-allowed",
+                    opacity: duration > 1 ? 1 : 0.5,
+                  }}
+                >
+                  -
+                </button>
+                <Text
+                  strong
+                  style={{
+                    minWidth: "50px",
+                    textAlign: "center",
+                    fontSize: "16px",
+                  }}
+                >
+                  {duration} ч
+                </Text>
+                <button
+                  type="button"
+                  onClick={() => handleDurationChange(duration + 1)}
+                  disabled={duration >= 4}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #d9d9d9",
+                    borderRadius: "4px",
+                    background: "#fff",
+                    cursor: duration < 4 ? "pointer" : "not-allowed",
+                    opacity: duration < 4 ? 1 : 0.5,
+                  }}
+                >
+                  +
+                </button>
+                <Text type="secondary" style={{ fontSize: "14px" }}>
+                  (от 1 до 4 часов)
+                </Text>
+              </div>
+            </div>
+          </div>
+
           <BookingGrid>
             <MapContainer>
               <MapHeader>
@@ -393,11 +583,15 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
                     <span>Свободно</span>
                   </LegendItem>
                   <LegendItem>
+                    <LegendColor color="#faad14" />
+                    <span>Ожидает оплаты</span>
+                  </LegendItem>
+                  <LegendItem>
                     <LegendColor color="#ff4d4f" />
                     <span>Занято</span>
                   </LegendItem>
                   <LegendItem>
-                    <LegendColor color="#faad14" />
+                    <LegendColor color="#1890ff" />
                     <span>Выбрано</span>
                   </LegendItem>
                 </Legend>
@@ -435,13 +629,18 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
               <BookingForm
                 selectedTable={selectedTable}
                 selectedDateTime={selectedDateTime}
-                onDateTimeChange={setSelectedDateTime}
+                onDateTimeChange={handleDateTimeChange}
                 restaurantName={restaurantName}
                 duration={duration}
-                onDurationChange={setDuration}
+                onDurationChange={handleDurationChange}
                 isBooked={
                   selectedTable
                     ? getTableBookingInfo(selectedTable).isBooked
+                    : false
+                }
+                hasPendingReservation={
+                  selectedTable
+                    ? !!getPendingReservationForTable(selectedTable.tableId)
                     : false
                 }
                 bookingInfo={

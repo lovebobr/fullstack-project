@@ -1,4 +1,3 @@
-// components/editor/TableElement.tsx
 import React, { useRef, useEffect } from "react";
 import { Group, Image, Text, Rect } from "react-konva";
 import { useImage } from "react-konva-utils";
@@ -27,6 +26,12 @@ interface Props {
   onSelect: () => void;
   onTableClick?: (table: TableItem) => void;
   onChange: (updates: Partial<TableItem>) => void;
+  bookingInfo?: {
+    isBooked: boolean;
+    remainingTime?: string;
+    endTime?: any;
+  };
+  hasPendingReservation?: boolean;
 }
 
 export const TableElement: React.FC<Props> = ({
@@ -37,6 +42,8 @@ export const TableElement: React.FC<Props> = ({
   onSelect,
   onTableClick,
   onChange,
+  bookingInfo,
+  hasPendingReservation = false,
 }) => {
   const [image] = useImage(item.imageUrl);
   const groupRef = useRef<any>(null);
@@ -71,16 +78,71 @@ export const TableElement: React.FC<Props> = ({
     }
   };
 
+  // Определяем цвет обводки в зависимости от статуса
   const getStrokeColor = () => {
-    if (item.isBooked) return EDITOR_COLORS.strokeBooked;
-    if (isSelected) return EDITOR_COLORS.strokeSelected;
+    if (bookingInfo?.isBooked) {
+      // Стол занят (confirmed) - красный
+      return EDITOR_COLORS.strokeBooked;
+    }
+    if (hasPendingReservation) {
+      // Есть pending бронь (ожидает оплаты) - желтый
+      return "#faad14";
+    }
+    if (isSelected) {
+      // Выбранный стол - оранжевый
+      return EDITOR_COLORS.strokeSelected;
+    }
     return "transparent";
   };
 
   const getStrokeWidth = () => {
-    if (isSelected) return 3;
-    if (item.isBooked) return 2;
+    if (bookingInfo?.isBooked || hasPendingReservation || isSelected) {
+      return 2;
+    }
     return 0;
+  };
+
+  // Определяем цвет фона в зависимости от статуса
+  const getOverlayColor = () => {
+    if (bookingInfo?.isBooked) {
+      return "rgba(255, 77, 79, 0.3)"; // Красный для занятых
+    }
+    if (hasPendingReservation) {
+      return "rgba(250, 173, 20, 0.2)"; // Желтый для ожидающих оплаты
+    }
+    return "transparent";
+  };
+
+  // Определяем цвет номера стола
+  const getTableNumberColor = () => {
+    if (bookingInfo?.isBooked) {
+      return "#ff4d4f"; // Красный для занятых
+    }
+    if (hasPendingReservation) {
+      return "#faad14"; // Желтый для ожидающих оплаты
+    }
+    return "#ffffff"; // Белый для свободных
+  };
+
+  // Получаем текст для отображения
+  const getStatusText = () => {
+    if (bookingInfo?.isBooked) {
+      return `⌛ ${bookingInfo.remainingTime}`;
+    }
+    if (hasPendingReservation) {
+      return "⏳ Ожидает оплаты";
+    }
+    return "";
+  };
+
+  const getStatusColor = () => {
+    if (bookingInfo?.isBooked) {
+      return "#ff4d4f";
+    }
+    if (hasPendingReservation) {
+      return "#faad14";
+    }
+    return "#ffffff";
   };
 
   return (
@@ -121,36 +183,80 @@ export const TableElement: React.FC<Props> = ({
         shadowOpacity={0.6}
       />
 
-      {/* Дополнительный слой для занятых столов */}
-      {item.isBooked && (
-        <Rect
-          width={item.width}
-          height={item.height}
-          fill="rgba(220, 53, 69, 0.25)"
-          cornerRadius={8}
-        />
-      )}
-
-      {/* Номер стола по центру */}
-      <Text
-        text={item.tableNumber.toString()}
-        x={item.width / 2}
-        y={item.height / 2}
-        offsetX={15}
-        offsetY={15}
-        width={30}
-        height={30}
-        fontSize={16}
-        fontFamily="Arial, sans-serif"
-        fill={item.isBooked ? "#dc3545" : "#ffffff"}
-        align="center"
-        verticalAlign="middle"
-        fontWeight="bold"
-        shadowColor="rgba(0,0,0,0.5)"
-        shadowBlur={5}
-        shadowOffsetX={2}
-        shadowOffsetY={2}
+      {/* Наложение в зависимости от статуса */}
+      <Rect
+        width={item.width}
+        height={item.height}
+        fill={getOverlayColor()}
+        cornerRadius={8}
       />
+
+      {/* ВНУТРЕННЯЯ группа для текста - компенсирует вращение основной группы */}
+      <Group
+        rotation={-item.rotation} // ОТРИЦАТЕЛЬНОЕ вращение - компенсирует вращение родительской группы
+        x={item.width / 2} // Смещаем к центру стола
+        y={item.height / 2} // Смещаем к центру стола
+      >
+        {/* Номер стола */}
+        <Text
+          text={item.tableNumber.toString()}
+          x={0} // Теперь относительно центра
+          y={0} // Теперь относительно центра
+          offsetX={15} // Смещение для центрирования
+          offsetY={15} // Смещение для центрирования
+          width={30}
+          height={30}
+          fontSize={16}
+          fontFamily="Arial, sans-serif"
+          fill={getTableNumberColor()}
+          align="center"
+          verticalAlign="middle"
+          fontWeight="bold"
+          shadowColor="rgba(0,0,0,0.5)"
+          shadowBlur={5}
+          shadowOffsetX={2}
+          shadowOffsetY={2}
+        />
+
+        {/* Информация о количестве мест */}
+        <Text
+          text={`${item.seats} мест`}
+          x={0} // Относительно центра
+          y={-item.height / 2 - 10} // Позиционируем над столом
+          offsetX={20} // Смещение для центрирования
+          fontSize={12}
+          fontFamily="Arial"
+          fill="#ffffff"
+          align="center"
+          shadowColor="rgba(0,0,0,0.5)"
+          shadowBlur={4}
+          shadowOffsetX={1}
+          shadowOffsetY={1}
+        />
+      </Group>
+
+      {/* ОТДЕЛЬНАЯ группа для статуса (вне основного вращения) */}
+      {getStatusText() && (
+        <Group
+          x={item.width / 2} // Позиционируем относительно стола
+          y={item.height + 20} // Под столом
+        >
+          <Text
+            text={getStatusText()}
+            x={0}
+            y={0}
+            offsetX={getStatusText().length * 3}
+            fontSize={10}
+            fontFamily="Arial"
+            fill={getStatusColor()}
+            align="center"
+            shadowColor="rgba(0,0,0,0.5)"
+            shadowBlur={4}
+            shadowOffsetX={1}
+            shadowOffsetY={1}
+          />
+        </Group>
+      )}
     </Group>
   );
 };

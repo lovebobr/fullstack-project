@@ -9,6 +9,7 @@ import React, {
 import { observer } from "mobx-react-lite";
 import { restaurantStore } from "../app/store/restaurant.store";
 import { authStore } from "../app/store/auth.store";
+import { ApplicationsPage } from "./ApplicationsPage";
 import { Editor } from "../app/component/Editor";
 import {
   Home,
@@ -23,6 +24,8 @@ import {
   User,
   BookOpen,
   MapPin,
+  ArrowLeft,
+  FileText,
 } from "lucide-react";
 import {
   AdminLayout,
@@ -172,9 +175,40 @@ const TablesCount = styled.div`
   border: 1px solid rgba(244, 97, 108, 0.3);
 `;
 
+// Стили для кнопки "Назад"
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 20px;
+
+  &:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+  }
+
+  &:active {
+    background: #dee2e6;
+  }
+`;
+
 export const AdminPanel = observer(() => {
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "restaurants" | "managers" | "bookings" | "profile"
+    | "dashboard"
+    | "restaurants"
+    | "managers"
+    | "bookings"
+    | "profile"
+    | "applications"
   >("dashboard");
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<
     number | null
@@ -998,6 +1032,21 @@ export const AdminPanel = observer(() => {
             </SidebarItem>
           )}
 
+          {isAdmin && (
+            <SidebarItem
+              active={activeTab === "applications"}
+              onClick={() => {
+                handleCloseBookingPage();
+                setActiveTab("applications");
+              }}
+            >
+              <SidebarIcon>
+                <FileText size={20} />
+              </SidebarIcon>
+              <span>Заявки</span>
+            </SidebarItem>
+          )}
+
           <SidebarItem
             active={activeTab === "profile"}
             onClick={() => {
@@ -1066,66 +1115,99 @@ export const AdminPanel = observer(() => {
     );
   }
 
-  // Если показываем редактор
+  // Если показываем редактор - СКРЫВАЕМ САЙДБАР, ОСТАВЛЯЕМ КНОПКУ НАЗАД
   if (showEditor && selectedRestaurantId) {
     return (
       <AdminLayout>
-        <Sidebar>
-          <SidebarHeader>
-            <h3>{isAdmin ? "Админ Панель" : "Панель Менеджера"}</h3>
-          </SidebarHeader>
-
-          <SidebarItem onClick={handleCloseEditor}>
-            <SidebarIcon>
-              <BookOpen size={20} />
-            </SidebarIcon>
-            <span>Назад к панели</span>
-          </SidebarItem>
-        </Sidebar>
-
-        <MainContent>
-          <ContentHeader>
-            <h1>Редактор карты зала</h1>
-            <UserProfile
-              onClick={() => {
-                handleCloseEditor();
-                setActiveTab("profile");
+        <MainContent style={{ marginLeft: 0, width: "100%" }}>
+          <ContentHeader
+            style={{
+              borderRadius: 0,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: "100%",
               }}
             >
               <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  backgroundColor: isAdmin ? "#667eea" : "#4facfe",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "14px",
-                  marginRight: "8px",
-                }}
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
               >
-                {currentUser?.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <div style={{ textAlign: "left" }}>
-                <div style={{ fontWeight: "500", fontSize: "14px" }}>
-                  {currentUser?.name}
-                </div>
-                <div
+                <button
+                  onClick={handleCloseEditor}
                   style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    fontWeight: "normal",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 16px",
+                    background: "#f8f9fa",
+                    border: "1px solid #dee2e6",
+                    borderRadius: "6px",
+                    color: "#495057",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#e9ecef";
+                    e.currentTarget.style.borderColor = "#adb5bd";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#f8f9fa";
+                    e.currentTarget.style.borderColor = "#dee2e6";
                   }}
                 >
-                  {isAdmin ? "Администратор" : "Менеджер"}
-                </div>
+                  <ArrowLeft size={16} />
+                  Вернуться к списку
+                </button>
+                <h1 style={{ margin: 0 }}>Редактор карты зала</h1>
               </div>
-            </UserProfile>
+              <UserProfile
+                onClick={() => {
+                  handleCloseEditor();
+                  setActiveTab("profile");
+                }}
+              >
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    backgroundColor: isAdmin ? "#667eea" : "#4facfe",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    marginRight: "8px",
+                  }}
+                >
+                  {currentUser?.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontWeight: "500", fontSize: "14px" }}>
+                    {currentUser?.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      fontWeight: "normal",
+                    }}
+                  >
+                    {isAdmin ? "Администратор" : "Менеджер"}
+                  </div>
+                </div>
+              </UserProfile>
+            </div>
           </ContentHeader>
-          <ContentBody>
+          <ContentBody style={{ paddingTop: "1rem" }}>
             <Editor restaurantId={selectedRestaurantId} userRole={userRole} />
           </ContentBody>
         </MainContent>
@@ -1259,6 +1341,18 @@ export const AdminPanel = observer(() => {
           </SidebarItem>
         )}
 
+        {isAdmin && (
+          <SidebarItem
+            active={activeTab === "applications"}
+            onClick={() => setActiveTab("applications")}
+          >
+            <SidebarIcon>
+              <FileText size={20} />
+            </SidebarIcon>
+            <span>Заявки</span>
+          </SidebarItem>
+        )}
+
         <SidebarItem
           active={activeTab === "profile"}
           onClick={() => setActiveTab("profile")}
@@ -1279,6 +1373,7 @@ export const AdminPanel = observer(() => {
             {activeTab === "bookings" && "Бронирование столиков"}
             {activeTab === "managers" && "Менеджеры"}
             {activeTab === "profile" && "Мой профиль"}
+            {activeTab === "applications" && "Управление заявками"}
           </h1>
           <UserProfile onClick={handleProfileClick}>
             <div
@@ -1321,6 +1416,7 @@ export const AdminPanel = observer(() => {
           {activeTab === "bookings" && BookingsContent}
           {activeTab === "managers" && isAdmin && <ManagerManagement />}
           {activeTab === "profile" && <Profile />}
+          {activeTab === "applications" && isAdmin && <ApplicationsPage />}
         </ContentBody>
       </MainContent>
     </AdminLayout>

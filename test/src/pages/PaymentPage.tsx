@@ -1,3 +1,4 @@
+// components/payment/PaymentPage.tsx
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../shared/lib/axios";
@@ -81,10 +82,29 @@ const PaymentPage: React.FC = () => {
           parseInt(reservationId)
         );
 
+        // Проверяем статус бронирования
+        if (reservation.status === "confirmed") {
+          alert("Это бронирование уже подтверждено. Оплата не требуется.");
+          navigate(PATHS.HOME);
+          return;
+        }
+
+        if (reservation.status === "cancelled") {
+          alert("Это бронирование было отменено.");
+          navigate(PATHS.HOME);
+          return;
+        }
+
         // Получаем название ресторана
         let restaurantName = "Ресторан";
         let guestsCount = 2;
         let tableNumber = "1";
+        let duration = 2;
+
+        // Получаем данные бронирования
+        if (reservation.duration) {
+          duration = reservation.duration;
+        }
 
         // Вариант 1: Если в резервации есть объект ресторана
         if (reservation.restaurant?.name) {
@@ -127,19 +147,31 @@ const PaymentPage: React.FC = () => {
           tableNumber = reservation.table.number.toString();
         }
 
+        // Получаем время и дату
+        const dateTime = new Date(reservation.date_time);
+        const endTime = new Date(
+          dateTime.getTime() + duration * 60 * 60 * 1000
+        );
+
         setBookingData({
           reservation_id: parseInt(reservationId),
           restaurant: restaurantName,
-          date: new Date(reservation.date_time).toLocaleDateString("ru-RU"),
-          time: new Date(reservation.date_time).toLocaleTimeString("ru-RU", {
+          date: dateTime.toLocaleDateString("ru-RU"),
+          time: dateTime.toLocaleTimeString("ru-RU", {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          end_time: endTime.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          duration: duration,
           guests: guestsCount,
           tableNumber: tableNumber,
           bookingId: `RES_${reservationId}`,
-          amount: 1500,
+          amount: reservation.price || 100,
           guests_text: getGuestsText(guestsCount),
+          status: reservation.status,
         });
       } catch (error) {
         console.error("Ошибка загрузки данных бронирования:", error);
@@ -150,11 +182,14 @@ const PaymentPage: React.FC = () => {
           restaurant: "Ресторан",
           date: new Date().toLocaleDateString("ru-RU"),
           time: "19:00",
+          end_time: "21:00",
+          duration: 2,
           guests: 2,
           tableNumber: "1",
           bookingId: `RES_${reservationId}`,
-          amount: 1500,
+          amount: 100,
           guests_text: "2 человека",
+          status: "pending",
         });
       } finally {
         setPageLoading(false);
@@ -162,7 +197,7 @@ const PaymentPage: React.FC = () => {
     };
 
     loadBookingData();
-  }, [reservationId]);
+  }, [reservationId, navigate]);
 
   const [formData, setFormData] = useState<PaymentData>({
     cardNumber: "",
@@ -350,6 +385,13 @@ const PaymentPage: React.FC = () => {
       return;
     }
 
+    // Проверяем, что бронирование еще не подтверждено
+    if (bookingData.status === "confirmed") {
+      alert("Это бронирование уже подтверждено. Оплата не требуется.");
+      navigate(PATHS.HOME);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -393,6 +435,21 @@ const PaymentPage: React.FC = () => {
       };
 
       const response = await api.post("/payments", paymentPayload);
+
+      // ВАЖНО: После успешной оплаты подтверждаем бронирование
+      try {
+        await ReservationService.confirm(bookingData.reservation_id);
+        console.log("Статус бронирования обновлен на 'confirmed'");
+
+        // Обновляем локальный статус
+        setBookingData((prev) => ({
+          ...prev,
+          status: "confirmed",
+        }));
+      } catch (confirmError) {
+        console.error("Ошибка подтверждения бронирования:", confirmError);
+        // Все равно продолжаем, пользователю покажем успех
+      }
 
       navigate(PATHS.SMS_VERIFICATION, {
         state: {
@@ -486,7 +543,13 @@ const PaymentPage: React.FC = () => {
             </OrderItem>
             <OrderItem>
               <OrderLabel>Время</OrderLabel>
-              <OrderValue>{bookingData.time}</OrderValue>
+              <OrderValue>
+                {bookingData.time} - {bookingData.end_time}
+              </OrderValue>
+            </OrderItem>
+            <OrderItem>
+              <OrderLabel>Длительность</OrderLabel>
+              <OrderValue>{bookingData.duration} часа</OrderValue>
             </OrderItem>
             <OrderItem>
               <OrderLabel>Гости</OrderLabel>
@@ -499,6 +562,14 @@ const PaymentPage: React.FC = () => {
             <OrderItem>
               <OrderLabel>Бронь №</OrderLabel>
               <OrderValue>{bookingData.bookingId}</OrderValue>
+            </OrderItem>
+            <OrderItem>
+              <OrderLabel>Статус</OrderLabel>
+              <OrderValue>
+                {bookingData.status === "pending"
+                  ? "Ожидает оплаты"
+                  : "Подтверждено"}
+              </OrderValue>
             </OrderItem>
             <OrderTotal>
               <TotalLabel>Итого к оплате</TotalLabel>
@@ -596,8 +667,16 @@ const PaymentPage: React.FC = () => {
       </TwoColumnLayout>
 
       <ButtonContainer>
-        <Button type="submit" onClick={handleSubmit} disabled={loading}>
-          {loading ? "Обработка..." : `Оплатить ${bookingData.amount} ₽`}
+        <Button
+          type="submit"
+          onClick={handleSubmit}
+          disabled={loading || bookingData.status === "confirmed"}
+        >
+          {loading
+            ? "Обработка..."
+            : bookingData.status === "confirmed"
+            ? "Уже оплачено"
+            : `Оплатить ${bookingData.amount} ₽`}
         </Button>
       </ButtonContainer>
     </Container>
