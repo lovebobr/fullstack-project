@@ -98,6 +98,12 @@ Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
     Route::post('/restaurants/{restaurantId}/assign-manager', [AdminController::class, 'assignManager']);
     Route::delete('/restaurants/{restaurantId}/remove-manager/{managerId}', [AdminController::class, 'removeManager']);
 
+
+    //Сережа, посмотри сюда!!!
+    Route::get('/reservations', [AdminController::class, 'getReservations']);
+    Route::put('/reservations/{id}', [AdminController::class, 'updateReservation']);
+    Route::delete('/reservations/{id}', [AdminController::class, 'deleteReservation']);
+
     // Table management
     Route::post('/restaurants/{restaurantId}/tables', [TableController::class, 'store']);
     Route::put('/tables/{id}', [TableController::class, 'update']);
