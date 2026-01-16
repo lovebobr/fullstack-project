@@ -9,24 +9,26 @@ import {
   Mail,
   Phone,
   LogOut,
-  History,
   Utensils,
   Calendar,
   Clock,
   RefreshCw,
   Users,
   MapPin,
-  Hash,
   Table as TableIcon,
   CreditCard,
-  Info,
 } from "lucide-react";
+import Header from "../app/component/Header";
+import { Modal } from "../app/component/ModalConfirm";
+import { profileStore } from "../app/store/profile.store";
+import { authStore } from "../app/store/auth.store";
+import { applicationsStore } from "../app/store/applications.store";
+import { useAuth } from "../useAuth";
 import {
   ProfileContainer,
   ProfileHeader,
   Avatar,
   ProfileName,
-  ProfileRole,
   ProfileContent,
   Section,
   SectionTitle,
@@ -41,24 +43,107 @@ import {
   CancelButton,
   EmptyValue,
   LogoutButton,
+  LoadingOverlay,
+  ErrorMessage,
+  EmptyState,
+  ProfileError,
+  SectionHeader,
+  RefreshButton,
+  ReservationsList,
+  ReservationCard,
+  ReservationHeader,
+  RestaurantInfo,
+  TableIconWrapper,
+  RestaurantDetails,
+  TableNumber,
+  RestaurantName,
+  RestaurantId,
+  StatusSection,
+  StatusBadge,
+  ReservationId,
+  DetailsGrid,
+  DetailItem,
+  DetailLabel,
+  DetailValue,
+  GuestsInfo,
+  GuestsCount,
+  SpecialRequests,
+  RequestsLabel,
+  RequestsText,
+  ActionButtonsRow,
+  ActionButton,
+  EmptyReservations,
 } from "../styled/Profile.styles";
-import { profileStore } from "../app/store/profile.store";
-import { authStore } from "../app/store/auth.store";
 
 export const Profile = observer(() => {
   const navigate = useNavigate();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "info" | "warning" | "danger";
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "info",
+    title: "",
+    message: "",
+  });
+  const { user } = useAuth();
+  const isAdmin = user?.role === "manager" || user?.role === "admin";
 
   useEffect(() => {
     console.log("Загрузка профиля...");
     profileStore.loadProfile();
   }, []);
 
+  // Функции для работы с модалкой
+  const showModal = useCallback(
+    (modalProps: {
+      type: "info" | "warning" | "danger";
+      title: string;
+      message: string;
+      confirmText?: string;
+      cancelText?: string;
+      onConfirm: () => void;
+    }) => {
+      setModalState({
+        isOpen: true,
+        ...modalProps,
+      });
+    },
+    []
+  );
+
+  const closeModal = useCallback(() => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
   const handleLogout = useCallback(() => {
-    authStore.logout();
-    navigate("/login", { replace: true });
-  }, [navigate]);
+    showModal({
+      type: "warning",
+      title: "Выход из системы",
+      message: "Вы уверены, что хотите выйти из своего аккаунта?",
+      confirmText: "Выйти",
+      cancelText: "Отмена",
+      onConfirm: () => {
+        authStore.logout();
+        navigate("/login", { replace: true });
+      },
+    });
+  }, [navigate, showModal]);
+
+  const handleBookTable = () => {
+    navigate("/booking");
+  };
+
+  const handleViewMenu = () => {
+    navigate("/menu");
+  };
 
   const startEditing = useCallback(
     (fieldName: string, currentValue: string) => {
@@ -74,11 +159,27 @@ export const Profile = observer(() => {
         await profileStore.updateProfileField(editingField, tempValue);
         setEditingField(null);
         setTempValue("");
+
+        showModal({
+          type: "info",
+          title: "Сохранено",
+          message: "Данные успешно обновлены",
+          confirmText: "OK",
+          onConfirm: closeModal,
+        });
       } catch (error) {
         console.error("Ошибка сохранения:", error);
+        showModal({
+          type: "danger",
+          title: "Ошибка",
+          message:
+            "Не удалось сохранить изменения. Пожалуйста, попробуйте еще раз.",
+          confirmText: "OK",
+          onConfirm: closeModal,
+        });
       }
     }
-  }, [editingField, tempValue]);
+  }, [editingField, tempValue, showModal, closeModal]);
 
   const cancelEditing = useCallback(() => {
     setEditingField(null);
@@ -102,24 +203,59 @@ export const Profile = observer(() => {
     profileStore.loadReservationHistory();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Не указано";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
+  const handleCancelReservation = useCallback(
+    (reservationId: string) => {
+      showModal({
+        type: "danger",
+        title: "Отмена бронирования",
+        message:
+          "Вы уверены, что хотите отменить это бронирование? Это действие нельзя будет отменить.",
+        confirmText: "Да, отменить",
+        cancelText: "Нет, оставить",
+        onConfirm: async () => {
+          try {
+            const result = await applicationsStore.cancelApplication(
+              reservationId
+            );
 
-  const formatTime = (dateString: string) => {
-    if (!dateString) return "Не указано";
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+            if (result.success) {
+              // Обновляем список бронирований
+              await profileStore.loadReservationHistory();
+
+              showModal({
+                type: "info",
+                title: "Успешно",
+                message: "Бронирование успешно отменено!",
+                confirmText: "OK",
+                onConfirm: closeModal,
+              });
+            } else {
+              showModal({
+                type: "warning",
+                title: "Ошибка",
+                message:
+                  "Не удалось отменить бронирование. Возможно, оно уже отменено или не найдено.",
+                confirmText: "OK",
+                onConfirm: closeModal,
+              });
+            }
+          } catch (error: any) {
+            console.error("Ошибка при отмене бронирования:", error);
+            showModal({
+              type: "danger",
+              title: "Ошибка",
+              message: `Ошибка: ${
+                error.message || "Не удалось отменить бронирование"
+              }`,
+              confirmText: "OK",
+              onConfirm: closeModal,
+            });
+          }
+        },
+      });
+    },
+    [showModal, closeModal]
+  );
 
   const formatDateTime = (dateString: string) => {
     if (!dateString) return "Не указано";
@@ -137,24 +273,20 @@ export const Profile = observer(() => {
     const statusMap: Record<string, string> = {
       pending: "Ожидание оплаты",
       confirmed: "Подтверждено",
-      completed: "Завершено",
       cancelled: "Отменено",
-      no_show: "Неявка",
-      active: "Активно",
     };
     return statusMap[status] || status;
   };
 
   const getStatusColor = (status: string) => {
     const colorMap: Record<string, { bg: string; text: string }> = {
-      pending: { bg: "#fff3cd", text: "#856404" },
-      confirmed: { bg: "#d1e7dd", text: "#0f5132" },
-      completed: { bg: "#cfe2ff", text: "#084298" },
-      cancelled: { bg: "#f8d7da", text: "#721c24" },
-      no_show: { bg: "#e2e3e5", text: "#41464b" },
-      active: { bg: "#cce5ff", text: "#004085" },
+      pending: { bg: "rgba(255, 149, 0, 0.2)", text: "#ff9500" },
+      confirmed: { bg: "rgba(39, 174, 96, 0.2)", text: "#27ae60" },
+      cancelled: { bg: "rgba(220, 53, 69, 0.2)", text: "#dc3545" },
     };
-    return colorMap[status] || { bg: "#e2e3e5", text: "#41464b" };
+    return (
+      colorMap[status] || { bg: "rgba(108, 117, 125, 0.2)", text: "#6c757d" }
+    );
   };
 
   const renderField = (
@@ -217,24 +349,11 @@ export const Profile = observer(() => {
   if (profileStore.loading) {
     return (
       <ProfileContainer>
-        <ProfileContent>
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div
-              className="spin"
-              style={{
-                width: "40px",
-                height: "40px",
-                border: "3px solid #f3f3f3",
-                borderTop: "3px solid #3498db",
-                borderRadius: "50%",
-                margin: "0 auto 20px",
-              }}
-            ></div>
-            <div style={{ fontSize: "16px", color: "#666" }}>
-              Загрузка профиля...
-            </div>
-          </div>
-        </ProfileContent>
+        <Header onBookTable={handleBookTable} onViewMenu={handleViewMenu} />
+        <LoadingOverlay>
+          <div className="spinner"></div>
+          <div className="loading-text">Загрузка профиля...</div>
+        </LoadingOverlay>
       </ProfileContainer>
     );
   }
@@ -243,43 +362,17 @@ export const Profile = observer(() => {
   if (profileStore.error && !profileStore.profileData) {
     return (
       <ProfileContainer>
-        <ProfileContent>
-          <div
-            style={{
-              textAlign: "center",
-              padding: "40px",
-              color: "#dc3545",
-              background: "#f8d7da",
-              borderRadius: "8px",
-              margin: "20px",
-            }}
+        <Header onBookTable={handleBookTable} onViewMenu={handleViewMenu} />
+        <ErrorMessage>
+          <div className="error-title">Ошибка загрузки профиля</div>
+          <div className="error-message">{profileStore.error}</div>
+          <button
+            className="retry-button"
+            onClick={() => profileStore.loadProfile()}
           >
-            <div
-              style={{
-                fontSize: "18px",
-                fontWeight: "500",
-                marginBottom: "10px",
-              }}
-            >
-              Ошибка загрузки профиля
-            </div>
-            <div style={{ marginBottom: "20px" }}>{profileStore.error}</div>
-            <button
-              onClick={() => profileStore.loadProfile()}
-              style={{
-                padding: "10px 20px",
-                background: "#dc3545",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: "500",
-              }}
-            >
-              Попробовать снова
-            </button>
-          </div>
-        </ProfileContent>
+            Попробовать снова
+          </button>
+        </ErrorMessage>
       </ProfileContainer>
     );
   }
@@ -288,30 +381,17 @@ export const Profile = observer(() => {
   if (!profileStore.profileData) {
     return (
       <ProfileContainer>
-        <ProfileContent>
-          <div
-            style={{ textAlign: "center", padding: "60px 20px", color: "#666" }}
+        <Header onBookTable={handleBookTable} onViewMenu={handleViewMenu} />
+        <EmptyState>
+          <User size={64} className="empty-icon" />
+          <div className="empty-title">Данные профиля не найдены</div>
+          <button
+            className="empty-button"
+            onClick={() => profileStore.loadProfile()}
           >
-            <User size={48} style={{ marginBottom: "20px", color: "#999" }} />
-            <div style={{ fontSize: "18px", marginBottom: "10px" }}>
-              Данные профиля не найдены
-            </div>
-            <button
-              onClick={() => profileStore.loadProfile()}
-              style={{
-                padding: "10px 20px",
-                background: "#1976d2",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                marginTop: "20px",
-              }}
-            >
-              Загрузить профиль
-            </button>
-          </div>
-        </ProfileContent>
+            Загрузить профиль
+          </button>
+        </EmptyState>
       </ProfileContainer>
     );
   }
@@ -319,729 +399,296 @@ export const Profile = observer(() => {
   const { profileData } = profileStore;
 
   return (
-    <ProfileContainer>
-      <ProfileHeader>
-        <Avatar>
-          <User size={40} />
-        </Avatar>
-        <div>
-          <ProfileName>{profileData.name}</ProfileName>
-          <ProfileRole>
-            {profileData.role === "admin" ? "Администратор" : "Пользователь"}
-            <span
-              style={{ marginLeft: "12px", fontSize: "12px", opacity: 0.7 }}
-            >
-              ID: {profileData.id}
-            </span>
-          </ProfileRole>
-        </div>
-      </ProfileHeader>
+    <>
+      <ProfileContainer>
+        <Header onBookTable={handleBookTable} onViewMenu={handleViewMenu} />
 
-      <ProfileContent>
-        {/* Блок информации о текущем пользователе */}
-        <div
-          style={{
-            backgroundColor: "#e9ecef",
-            padding: "12px 16px",
-            borderRadius: "8px",
-            marginBottom: "24px",
-            fontSize: "14px",
-            color: "#495057",
-            border: "1px solid #dee2e6",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "8px",
-            }}
-          >
-            <Info size={16} />
-            <span style={{ fontWeight: "500" }}>Информация о сессии:</span>
+        <ProfileHeader>
+          <div style={{ textAlign: "center" }}>
+            <Avatar>
+              <User size={48} />
+            </Avatar>
+            <ProfileName>{profileData.name}</ProfileName>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-            }}
-          >
-            <div>
-              ID пользователя: <strong>{profileData.id}</strong>
-            </div>
-            <div>
-              Email: <strong>{profileData.email}</strong>
-            </div>
-            <div>
-              Роль: <strong>{profileData.role}</strong>
-            </div>
-            <div>
-              Бронирований:{" "}
-              <strong>{profileData.reservations?.length || 0}</strong>
-            </div>
-          </div>
-        </div>
+        </ProfileHeader>
 
-        {profileStore.error && (
-          <div
-            style={{
-              color: "#721c24",
-              background: "#f8d7da",
-              padding: "12px 16px",
-              borderRadius: "8px",
-              marginBottom: "20px",
-              border: "1px solid #f5c6cb",
-              fontSize: "14px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+        <ProfileContent>
+          {profileStore.error && (
+            <ProfileError>
               <span>{profileStore.error}</span>
               <button
+                className="error-close"
                 onClick={() => profileStore.clearError()}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#721c24",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  padding: "0",
-                  lineHeight: "1",
-                }}
               >
                 ×
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* Основная информация */}
-        <Section>
-          <SectionTitle>
-            <User size={20} />
-            Основная информация
-          </SectionTitle>
-          <FieldGrid>
-            {renderField(
-              "name",
-              "Полное имя",
-              profileData.name,
-              <User size={16} />
-            )}
-            {renderField(
-              "email",
-              "Email",
-              profileData.email,
-              <Mail size={16} />
-            )}
-            {profileData.phone &&
-              renderField(
-                "phone",
-                "Телефон",
-                profileData.phone,
-                <Phone size={16} />
-              )}
-          </FieldGrid>
-        </Section>
-
-        {/* Раздел бронирований */}
-        <Section>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "16px",
-            }}
-          >
-            <SectionTitle>
-              <Calendar size={20} />
-              Мои бронирования
-              <span
-                style={{
-                  marginLeft: "8px",
-                  fontSize: "14px",
-                  fontWeight: "normal",
-                  color: "#6c757d",
-                }}
-              >
-                ({profileData.reservations?.length || 0})
-              </span>
-            </SectionTitle>
-            <button
-              onClick={handleRefreshReservations}
-              disabled={profileStore.loadingReservations}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                backgroundColor: "#f8f9fa",
-                border: "1px solid #dee2e6",
-                borderRadius: "4px",
-                cursor: profileStore.loadingReservations
-                  ? "not-allowed"
-                  : "pointer",
-                fontSize: "14px",
-                color: profileStore.loadingReservations ? "#6c757d" : "#495057",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (!profileStore.loadingReservations) {
-                  e.currentTarget.style.backgroundColor = "#e9ecef";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!profileStore.loadingReservations) {
-                  e.currentTarget.style.backgroundColor = "#f8f9fa";
-                }
-              }}
-            >
-              <RefreshCw
-                size={14}
-                className={profileStore.loadingReservations ? "spin" : ""}
-              />
-              {profileStore.loadingReservations ? "Обновление..." : "Обновить"}
-            </button>
-          </div>
-
-          {profileData.reservations && profileData.reservations.length > 0 ? (
-            <div style={{ marginTop: "8px" }}>
-              {profileData.reservations.map((reservation) => {
-                const statusColors = getStatusColor(reservation.status);
-                const isActive =
-                  reservation.status === "confirmed" ||
-                  reservation.status === "active";
-                const isPending = reservation.status === "pending";
-
-                return (
-                  <div
-                    key={reservation.id}
-                    style={{
-                      padding: "20px",
-                      marginBottom: "16px",
-                      backgroundColor: isActive
-                        ? "#f0f9ff"
-                        : isPending
-                        ? "#fffcf5"
-                        : "#ffffff",
-                      borderRadius: "12px",
-                      border: `2px solid ${
-                        isActive ? "#b3e0ff" : isPending ? "#ffe8b3" : "#e9ecef"
-                      }`,
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                      transition: "all 0.3s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 12px rgba(0,0,0,0.1)";
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(0,0,0,0.06)";
-                      e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        marginBottom: "16px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "16px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "56px",
-                            height: "56px",
-                            borderRadius: "12px",
-                            backgroundColor: isActive
-                              ? "#e3f2fd"
-                              : isPending
-                              ? "#fff3cd"
-                              : "#f5f5f5",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: isActive
-                              ? "#1976d2"
-                              : isPending
-                              ? "#ff9800"
-                              : "#757575",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <TableIcon size={28} />
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: "700",
-                              color: "#212529",
-                              fontSize: "20px",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            Стол №{reservation.tableNumber || reservation.id}
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              fontSize: "16px",
-                              color: "#495057",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            <Utensils size={16} />
-                            <span style={{ fontWeight: "600" }}>
-                              {reservation.restaurantName || "Ресторан"}
-                            </span>
-                          </div>
-                          {reservation.restaurant_id && (
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                fontSize: "14px",
-                                color: "#6c757d",
-                              }}
-                            >
-                              <MapPin size={14} />
-                              ID ресторана: {reservation.restaurant_id}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-end",
-                          gap: "8px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: "6px 16px",
-                            backgroundColor: statusColors.bg,
-                            color: statusColors.text,
-                            borderRadius: "16px",
-                            fontSize: "13px",
-                            fontWeight: "700",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          {getStatusText(reservation.status)}
-                        </div>
-                        <div style={{ fontSize: "12px", color: "#6c757d" }}>
-                          ID: #{reservation.id}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Детали бронирования */}
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(200px, 1fr))",
-                        gap: "16px",
-                        padding: "16px",
-                        backgroundColor: "white",
-                        borderRadius: "8px",
-                        marginBottom: "16px",
-                        border: "1px solid #e9ecef",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "8px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6c757d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          <Calendar size={12} style={{ marginRight: "6px" }} />
-                          Дата и время
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            color: "#212529",
-                          }}
-                        >
-                          {formatDateTime(reservation.date_time)}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "8px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6c757d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          <Clock size={12} style={{ marginRight: "6px" }} />
-                          Длительность
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            color: "#212529",
-                          }}
-                        >
-                          {reservation.duration || 2} часа
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "8px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6c757d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          <Users size={12} style={{ marginRight: "6px" }} />
-                          Мест/Гостей
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: "16px",
-                              fontWeight: "600",
-                              color: "#212529",
-                            }}
-                          >
-                            {reservation.tableSeats || 2} мест
-                          </div>
-                          {reservation.guests_count && (
-                            <>
-                              <div style={{ color: "#adb5bd" }}>•</div>
-                              <div
-                                style={{
-                                  fontSize: "16px",
-                                  fontWeight: "600",
-                                  color: "#28a745",
-                                }}
-                              >
-                                {reservation.guests_count} гостей
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "8px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6c757d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          <CreditCard
-                            size={12}
-                            style={{ marginRight: "6px" }}
-                          />
-                          Сумма
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            color: "#212529",
-                          }}
-                        >
-                          {reservation.price
-                            ? `${reservation.price} ₽`
-                            : "Бесплатно"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Дополнительная информация */}
-                    {reservation.special_requests && (
-                      <div
-                        style={{
-                          padding: "12px 16px",
-                          backgroundColor: "#f8f9fa",
-                          borderRadius: "8px",
-                          marginBottom: "16px",
-                          borderLeft: "4px solid #007bff",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            color: "#495057",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          Особые пожелания:
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#6c757d" }}>
-                          {reservation.special_requests}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Кнопки действий */}
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: "12px",
-                      }}
-                    >
-                      {isPending && (
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/payment?reservation_id=${reservation.id}`
-                            )
-                          }
-                          style={{
-                            padding: "8px 16px",
-                            backgroundColor: "#28a745",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            fontWeight: "600",
-                            fontSize: "14px",
-                            transition: "background-color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#218838";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "#28a745";
-                          }}
-                        >
-                          <CreditCard
-                            size={14}
-                            style={{ marginRight: "6px" }}
-                          />
-                          Оплатить
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => {
-                          if (reservation.restaurant_id) {
-                            navigate(
-                              `/restaurants/${reservation.restaurant_id}`
-                            );
-                          } else {
-                            navigate("/restaurants");
-                          }
-                        }}
-                        style={{
-                          padding: "8px 16px",
-                          backgroundColor: "#007bff",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          fontWeight: "600",
-                          fontSize: "14px",
-                          transition: "background-color 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#0056b3";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "#007bff";
-                        }}
-                      >
-                        <Utensils size={14} style={{ marginRight: "6px" }} />
-                        Посмотреть ресторан
-                      </button>
-
-                      {(isPending || isActive) && (
-                        <button
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                "Вы уверены, что хотите отменить это бронирование?"
-                              )
-                            ) {
-                              alert(
-                                "Функция отмены бронирования будет добавлена позже"
-                              );
-                              // TODO: Добавить вызов API для отмены бронирования
-                            }
-                          }}
-                          style={{
-                            padding: "8px 16px",
-                            backgroundColor: "transparent",
-                            color: "#dc3545",
-                            border: "2px solid #dc3545",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            fontWeight: "600",
-                            fontSize: "14px",
-                            transition: "all 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#dc3545";
-                            e.currentTarget.style.color = "white";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "transparent";
-                            e.currentTarget.style.color = "#dc3545";
-                          }}
-                        >
-                          <X size={14} style={{ marginRight: "6px" }} />
-                          Отменить
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "60px 24px",
-                color: "#6c757d",
-                backgroundColor: "#f8f9fa",
-                borderRadius: "12px",
-                border: "2px dashed #dee2e6",
-              }}
-            >
-              <Calendar
-                size={64}
-                style={{ marginBottom: "20px", color: "#adb5bd", opacity: 0.5 }}
-              />
-              <div
-                style={{
-                  fontSize: "18px",
-                  fontWeight: "500",
-                  marginBottom: "12px",
-                  color: "#495057",
-                }}
-              >
-                Нет активных бронирований
-              </div>
-              <div
-                style={{
-                  fontSize: "15px",
-                  color: "#868e96",
-                  marginBottom: "24px",
-                  maxWidth: "400px",
-                  margin: "0 auto 24px",
-                }}
-              >
-                У вас пока нет забронированных столов. Вы можете выбрать
-                ресторан и забронировать стол прямо сейчас.
-              </div>
-              <button
-                onClick={() => navigate("/restaurants")}
-                style={{
-                  padding: "12px 24px",
-                  backgroundColor: "#1976d2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "15px",
-                  fontWeight: "600",
-                  transition: "background-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#1565c0";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#1976d2";
-                }}
-              >
-                <TableIcon size={16} style={{ marginRight: "8px" }} />
-                Забронировать стол
-              </button>
-            </div>
+            </ProfileError>
           )}
-        </Section>
 
-        {/* Кнопка выхода */}
-        <Section>
-          <LogoutButton onClick={handleLogout}>
-            <LogOut size={16} />
-            Выйти из системы
-          </LogoutButton>
-        </Section>
-      </ProfileContent>
+          {/* Основная информация */}
+          <Section>
+            <SectionTitle>
+              <User size={20} />
+              Основная информация
+            </SectionTitle>
+            <FieldGrid>
+              {renderField(
+                "name",
+                "Полное имя",
+                profileData.name,
+                <User size={16} />
+              )}
+              {renderField(
+                "email",
+                "Email",
+                profileData.email,
+                <Mail size={16} />
+              )}
+              {profileData.phone &&
+                renderField(
+                  "phone",
+                  "Телефон",
+                  profileData.phone,
+                  <Phone size={16} />
+                )}
+            </FieldGrid>
+          </Section>
 
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          .spin {
-            animation: spin 1s linear infinite;
-          }
-        `}
-      </style>
-    </ProfileContainer>
+          {/* Раздел бронирований */}
+          {!isAdmin && (
+            <Section>
+              <SectionHeader>
+                <SectionTitle>
+                  <Calendar size={20} />
+                  Мои бронирования
+                  <span className="count-badge">
+                    {profileData.reservations?.length || 0}
+                  </span>
+                </SectionTitle>
+                <RefreshButton
+                  onClick={handleRefreshReservations}
+                  disabled={profileStore.loadingReservations}
+                >
+                  <RefreshCw
+                    size={14}
+                    className={profileStore.loadingReservations ? "spin" : ""}
+                  />
+                  {profileStore.loadingReservations
+                    ? "Обновление..."
+                    : "Обновить"}
+                </RefreshButton>
+              </SectionHeader>
+
+              {profileData.reservations &&
+              profileData.reservations.length > 0 ? (
+                <ReservationsList>
+                  {profileData.reservations.map((reservation) => {
+                    const statusColors = getStatusColor(reservation.status);
+                    const isActive = reservation.status === "confirmed";
+                    const isPending = reservation.status === "pending";
+                    const canCancel =
+                      (isPending || isActive) &&
+                      reservation.status !== "cancelled";
+
+                    return (
+                      <ReservationCard
+                        key={reservation.id}
+                        $isActive={isActive}
+                        $isPending={isPending}
+                      >
+                        <ReservationHeader>
+                          <RestaurantInfo>
+                            <TableIconWrapper
+                              $isActive={isActive}
+                              $isPending={isPending}
+                            >
+                              <TableIcon size={28} />
+                            </TableIconWrapper>
+                            <RestaurantDetails>
+                              <TableNumber>
+                                Стол №
+                                {reservation.tableNumber || reservation.id}
+                              </TableNumber>
+                              <RestaurantName>
+                                <Utensils size={16} />
+                                <span>
+                                  {reservation.restaurantName || "Ресторан"}
+                                </span>
+                              </RestaurantName>
+                              {reservation.restaurant_id && (
+                                <RestaurantId>
+                                  <MapPin size={14} />
+                                  ID ресторана: {reservation.restaurant_id}
+                                </RestaurantId>
+                              )}
+                            </RestaurantDetails>
+                          </RestaurantInfo>
+                          <StatusSection>
+                            <StatusBadge
+                              $bg={statusColors.bg}
+                              $text={statusColors.text}
+                            >
+                              {getStatusText(reservation.status)}
+                            </StatusBadge>
+                            <ReservationId>ID: #{reservation.id}</ReservationId>
+                          </StatusSection>
+                        </ReservationHeader>
+
+                        <DetailsGrid>
+                          <DetailItem>
+                            <DetailLabel>
+                              <Calendar size={12} />
+                              Дата и время
+                            </DetailLabel>
+                            <DetailValue>
+                              {formatDateTime(reservation.date_time)}
+                            </DetailValue>
+                          </DetailItem>
+
+                          <DetailItem>
+                            <DetailLabel>
+                              <Clock size={12} />
+                              Длительность
+                            </DetailLabel>
+                            <DetailValue>
+                              {reservation.duration || 2} часа
+                            </DetailValue>
+                          </DetailItem>
+
+                          <DetailItem>
+                            <DetailLabel>
+                              <Users size={12} />
+                              Мест/Гостей
+                            </DetailLabel>
+                            <GuestsInfo>
+                              <DetailValue>
+                                {reservation.tableSeats || 2} мест
+                              </DetailValue>
+                              {reservation.guests_count && (
+                                <>
+                                  <div style={{ color: "#adb5bd" }}>•</div>
+                                  <GuestsCount>
+                                    {reservation.guests_count} гостей
+                                  </GuestsCount>
+                                </>
+                              )}
+                            </GuestsInfo>
+                          </DetailItem>
+
+                          <DetailItem>
+                            <DetailLabel>
+                              <CreditCard size={12} />
+                              Сумма
+                            </DetailLabel>
+                            <DetailValue>
+                              {reservation.price
+                                ? `${reservation.price} ₽`
+                                : "Бесплатно"}
+                            </DetailValue>
+                          </DetailItem>
+                        </DetailsGrid>
+
+                        {reservation.special_requests && (
+                          <SpecialRequests>
+                            <RequestsLabel>Особые пожелания:</RequestsLabel>
+                            <RequestsText>
+                              {reservation.special_requests}
+                            </RequestsText>
+                          </SpecialRequests>
+                        )}
+
+                        <ActionButtonsRow>
+                          {isPending && (
+                            <ActionButton
+                              $variant="success"
+                              onClick={() =>
+                                navigate(
+                                  `/payment?reservation_id=${reservation.id}`
+                                )
+                              }
+                            >
+                              <CreditCard size={14} />
+                              Оплатить
+                            </ActionButton>
+                          )}
+
+                          <ActionButton
+                            $variant="outline"
+                            onClick={() => {
+                              if (reservation.restaurant_id) {
+                                navigate(
+                                  `/restaurants/${reservation.restaurant_id}`
+                                );
+                              } else {
+                                navigate("/restaurants");
+                              }
+                            }}
+                          >
+                            <Utensils size={14} />
+                            Посмотреть ресторан
+                          </ActionButton>
+
+                          {canCancel && (
+                            <ActionButton
+                              $variant="danger"
+                              onClick={() =>
+                                handleCancelReservation(reservation.id)
+                              }
+                            >
+                              <X size={14} />
+                              Отменить
+                            </ActionButton>
+                          )}
+                        </ActionButtonsRow>
+                      </ReservationCard>
+                    );
+                  })}
+                </ReservationsList>
+              ) : (
+                <EmptyReservations>
+                  <Calendar size={64} className="empty-icon" />
+                  <div className="empty-title">Нет активных бронирований</div>
+                  <div className="empty-description">
+                    У вас пока нет забронированных столов. Вы можете выбрать
+                    ресторан и забронировать стол прямо сейчас.
+                  </div>
+                  <button
+                    className="empty-button"
+                    onClick={() => navigate("/restaurants")}
+                  >
+                    <TableIcon size={16} />
+                    Забронировать стол
+                  </button>
+                </EmptyReservations>
+              )}
+            </Section>
+          )}
+
+          {/* Кнопка выхода */}
+          <Section>
+            <LogoutButton onClick={handleLogout}>
+              <LogOut size={16} />
+              Выйти из системы
+            </LogoutButton>
+          </Section>
+        </ProfileContent>
+      </ProfileContainer>
+
+      {/* Модальное окно */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={() => {
+          modalState.onConfirm?.();
+          closeModal();
+        }}
+        title={modalState.title}
+        message={modalState.message}
+        confirmText={modalState.confirmText}
+        cancelText={modalState.cancelText}
+        type={modalState.type}
+      />
+    </>
   );
 });
 

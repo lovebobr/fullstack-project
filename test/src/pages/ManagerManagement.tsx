@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import {
   Users,
@@ -9,9 +9,16 @@ import {
   Ban,
   CheckCircle,
   X,
+  Search,
+  Filter,
+  Shield,
+  ShieldOff,
+  Calendar,
+  Phone,
 } from "lucide-react";
 import { managerStore } from "../app/store/manager.store";
 import { restaurantStore } from "../app/store/restaurant.store";
+import { userStore } from "../app/store/user.store"; // ИМПОРТИРУЕМ НОВЫЙ СТОР
 import {
   ManagerForm,
   FormInput,
@@ -34,22 +41,36 @@ export const ManagerManagement = observer(() => {
     email: "",
     password: "",
   });
-  const [assignFormData, setAssignFormData] = useState({
-    managerId: "",
-    restaurantId: "",
-  });
   const [editingManager, setEditingManager] = useState<number | null>(null);
+
+  // НОВЫЕ СОСТОЯНИЯ ДЛЯ ФИЛЬТРАЦИИ ПОЛЬЗОВАТЕЛЕЙ
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAllUsers, setShowAllUsers] = useState(false);
 
   useEffect(() => {
     managerStore.loadManagers();
     restaurantStore.loadRestaurants();
+    userStore.loadUsers(); // Загружаем всех пользователей
   }, []);
+
+  // ПРИМЕНЯЕМ ФИЛЬТРЫ К ПОЛЬЗОВАТЕЛЯМ
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      userStore.setFilter("search", searchTerm);
+      userStore.loadUsers();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const handleCreateManager = async (e: FormEvent) => {
     e.preventDefault();
     try {
       await managerStore.createManager(formData);
       setFormData({ name: "", email: "", password: "" });
+      // Перезагружаем оба списка
+      managerStore.loadManagers();
+      userStore.loadUsers();
     } catch (error) {
       console.error("Ошибка создания менеджера:", error);
     }
@@ -60,7 +81,6 @@ export const ManagerManagement = observer(() => {
     if (!editingManager) return;
 
     try {
-      // ВЫЗЫВАЕМ НОВЫЙ МЕТОД updateManager
       await managerStore.updateManager(editingManager, {
         name: formData.name,
         email: formData.email,
@@ -68,81 +88,394 @@ export const ManagerManagement = observer(() => {
 
       setFormData({ name: "", email: "", password: "" });
       setEditingManager(null);
+      // Перезагружаем оба списка
+      managerStore.loadManagers();
+      userStore.loadUsers();
     } catch (error) {
       console.error("Ошибка редактирования менеджера:", error);
     }
   };
-  const handleAssignRestaurant = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!assignFormData.managerId || !assignFormData.restaurantId) return;
 
-    try {
-      await managerStore.assignRestaurant(
-        parseInt(assignFormData.managerId),
-        parseInt(assignFormData.restaurantId)
-      );
-      setAssignFormData({ managerId: "", restaurantId: "" });
-      managerStore.loadManagers();
-    } catch (error) {
-      console.error("Ошибка назначения ресторана:", error);
-    }
-  };
+  // НОВЫЙ МЕТОД: НАЗНАЧЕНИЕ РОЛИ МЕНЕДЖЕРА ИЗ СПИСКА ПОЛЬЗОВАТЕЛЕЙ
+  const handleAssignManagerRole = async (
+    userId: number,
+    currentRole: string
+  ) => {
+    const newRole = currentRole === "manager" ? "user" : "manager";
+    const confirmMessage =
+      newRole === "manager"
+        ? "Назначить пользователя менеджером?"
+        : "Снять роль менеджера?";
 
-  const handleBlockManager = async (id: number) => {
-    try {
-      await managerStore.blockManager(id);
-    } catch (error) {
-      console.error("Ошибка блокировки менеджера:", error);
-    }
-  };
-
-  const handleUnblockManager = async (id: number) => {
-    try {
-      await managerStore.unblockManager(id);
-    } catch (error) {
-      console.error("Ошибка разблокировки менеджера:", error);
-    }
-  };
-
-  const handleDeleteManager = async (id: number) => {
-    if (window.confirm("Вы уверены, что хотите удалить менеджера?")) {
+    if (window.confirm(confirmMessage)) {
       try {
-        await managerStore.deleteManager(id);
+        await userStore.updateUserRole(userId, newRole as "manager" | "user");
+        // Перезагружаем оба списка
+        managerStore.loadManagers();
+        userStore.loadUsers();
       } catch (error) {
-        console.error("Ошибка удаления менеджера:", error);
+        console.error("Ошибка изменения роли:", error);
       }
     }
   };
 
-  const handleFormChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleAssignChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setAssignFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Обработчик клика на редактирование менеджера
-  const handleEditClick = (manager: any) => {
-    setEditingManager(manager.id);
-    setFormData({
-      name: manager.name,
-      email: manager.email,
-      password: "", // Пароль оставляем пустым для редактирования
+  // ФОРМАТИРОВАНИЕ ДАТЫ
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
 
-  // Отмена редактирования
-  const handleCancelEdit = () => {
-    setEditingManager(null);
-    setFormData({ name: "", email: "", password: "" });
+  // ПОЛУЧАЕМ ПОЛЬЗОВАТЕЛЕЙ С ФИЛЬТРАЦИЕЙ
+  const getFilteredUsers = () => {
+    if (!showAllUsers) return [];
+
+    return userStore.users.filter(
+      (user) =>
+        user.role !== "admin" && // Не показываем админов
+        (searchTerm === "" ||
+          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
   };
+
+  // ПОЛУЧАЕМ ТОЛЬКО МЕНЕДЖЕРОВ ИЗ СПИСКА МЕНЕДЖЕРОВ
+  const getManagersOnly = () => {
+    return managerStore.managers;
+  };
+
+  // РЕНДЕРИМ ТАБЛИЦУ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ НАЗНАЧЕНИЯ МЕНЕДЖЕРОМ
+  const renderUsersTable = () => {
+    const filteredUsers = getFilteredUsers();
+
+    if (!showAllUsers) return null;
+
+    return (
+      <div
+        style={{
+          background: "white",
+          borderRadius: "8px",
+          overflow: "hidden",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ padding: "20px", borderBottom: "1px solid #eaeaea" }}>
+          <h3
+            style={{
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <Users size={20} />
+            Все пользователи
+            <span
+              style={{
+                background: "#e9ecef",
+                color: "#495057",
+                padding: "2px 8px",
+                borderRadius: "12px",
+                fontSize: "14px",
+                fontWeight: "normal",
+              }}
+            >
+              {filteredUsers.length} пользователей
+            </span>
+          </h3>
+          <p style={{ margin: "5px 0 0 0", color: "#666", fontSize: "14px" }}>
+            Назначьте роль менеджера из списка зарегистрированных пользователей
+          </p>
+        </div>
+
+        {/* ПОИСК */}
+        <div
+          style={{ padding: "15px 20px", borderBottom: "1px solid #eaeaea" }}
+        >
+          <div style={{ position: "relative", maxWidth: "400px" }}>
+            <Search
+              size={18}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#6c757d",
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Поиск по имени или email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 16px 10px 40px",
+                border: "1px solid #dee2e6",
+                borderRadius: "4px",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+        </div>
+
+        {userStore.loading ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
+            Загрузка пользователей...
+          </div>
+        ) : filteredUsers.length > 0 ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f8f9fa" }}>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      borderBottom: "1px solid #dee2e6",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Пользователь
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      borderBottom: "1px solid #dee2e6",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Контакты
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      borderBottom: "1px solid #dee2e6",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Роль
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      borderBottom: "1px solid #dee2e6",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Статус
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      borderBottom: "1px solid #dee2e6",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Дата регистрации
+                  </th>
+                  <th
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "center",
+                      borderBottom: "1px solid #dee2e6",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Действия
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    style={{ borderBottom: "1px solid #eaeaea" }}
+                  >
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ fontWeight: "600" }}>{user.name}</div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            fontSize: "14px",
+                          }}
+                        >
+                          <Mail size={14} />
+                          {user.email}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          background:
+                            user.role === "manager" ? "#d1ecf1" : "#d4edda",
+                          color:
+                            user.role === "manager" ? "#0c5460" : "#155724",
+                        }}
+                      >
+                        {user.role === "manager" ? (
+                          <Shield size={12} />
+                        ) : (
+                          <Users size={12} />
+                        )}
+                        {user.role === "manager" ? "Менеджер" : "Пользователь"}
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          background: user.is_blocked ? "#f8d7da" : "#d4edda",
+                          color: user.is_blocked ? "#dc3545" : "#155724",
+                        }}
+                      >
+                        {user.is_blocked ? "Заблокирован" : "Активен"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        <Calendar size={14} />
+                        {formatDate(user.created_at)}
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <button
+                          onClick={() =>
+                            handleAssignManagerRole(user.id, user.role)
+                          }
+                          title={
+                            user.role === "manager"
+                              ? "Снять роль менеджера"
+                              : "Назначить менеджером"
+                          }
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "6px 12px",
+                            background:
+                              user.role === "manager" ? "#6c757d" : "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {user.role === "manager" ? (
+                            <ShieldOff size={14} />
+                          ) : (
+                            <Shield size={14} />
+                          )}
+                          {user.role === "manager"
+                            ? "Снять роль"
+                            : "Назначить менеджером"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
+            <div style={{ fontSize: "48px", marginBottom: "10px" }}>👤</div>
+            <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>
+              Пользователи не найдены
+            </h4>
+            <p style={{ margin: 0 }}>
+              {searchTerm
+                ? "Попробуйте изменить поисковый запрос"
+                : "Нет зарегистрированных пользователей"}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // КНОПКА ПЕРЕКЛЮЧЕНИЯ МЕЖДУ ВИДАМИ
+  const renderToggleButton = () => (
+    <div style={{ marginBottom: "20px" }}>
+      <button
+        onClick={() => setShowAllUsers(!showAllUsers)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 16px",
+          background: showAllUsers ? "#6c757d" : "#28a745",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "500",
+        }}
+      >
+        <Filter size={16} />
+        {showAllUsers
+          ? "Показать только менеджеров"
+          : "Назначить из пользователей"}
+      </button>
+    </div>
+  );
 
   return (
     <div>
-      {/* Форма создания/редактирования менеджера */}
+      {/* КНОПКА ПЕРЕКЛЮЧЕНИЯ */}
+      {renderToggleButton()}
+
+      {/* ТАБЛИЦА ВСЕХ ПОЛЬЗОВАТЕЛЕЙ (ДЛЯ НАЗНАЧЕНИЯ МЕНЕДЖЕРОМ) */}
+      {renderUsersTable()}
+
+      {/* ФОРМА СОЗДАНИЯ НОВОГО МЕНЕДЖЕРА (оставляем для создания с нуля) */}
       <ManagerForm
         onSubmit={editingManager ? handleEditManager : handleCreateManager}
       >
@@ -170,7 +503,10 @@ export const ManagerManagement = observer(() => {
           >
             <button
               type="button"
-              onClick={handleCancelEdit}
+              onClick={() => {
+                setEditingManager(null);
+                setFormData({ name: "", email: "", password: "" });
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -215,7 +551,9 @@ export const ManagerManagement = observer(() => {
               name="name"
               placeholder="Введите ФИО менеджера"
               value={formData.name}
-              onChange={handleFormChange}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               required
               autoComplete="new-name"
             />
@@ -236,7 +574,9 @@ export const ManagerManagement = observer(() => {
               name="email"
               placeholder="Введите email"
               value={formData.email}
-              onChange={handleFormChange}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               required
               autoComplete="new-email"
             />
@@ -259,7 +599,9 @@ export const ManagerManagement = observer(() => {
               name="password"
               placeholder="Введите пароль"
               value={formData.password}
-              onChange={handleFormChange}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               required
               autoComplete="new-password"
             />
@@ -289,23 +631,16 @@ export const ManagerManagement = observer(() => {
             </>
           )}
         </FormButton>
-
-        {managerStore.error && (
-          <div
-            style={{ color: "#dc3545", marginTop: "10px", fontSize: "14px" }}
-          >
-            {managerStore.error}
-          </div>
-        )}
       </ManagerForm>
 
-      {/* Таблица менеджеров */}
+      {/* ТАБЛИЦА МЕНЕДЖЕРОВ (существующая) */}
       <div
         style={{
           background: "white",
           borderRadius: "8px",
           overflow: "hidden",
           boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          marginTop: "20px",
         }}
       >
         <div style={{ padding: "20px", borderBottom: "1px solid #eaeaea" }}>
@@ -329,7 +664,7 @@ export const ManagerManagement = observer(() => {
                 fontWeight: "normal",
               }}
             >
-              {managerStore.managers.length}
+              {getManagersOnly().length}
             </span>
           </h3>
         </div>
@@ -340,21 +675,7 @@ export const ManagerManagement = observer(() => {
           </div>
         )}
 
-        {managerStore.error && (
-          <div
-            style={{
-              padding: "20px",
-              color: "#dc3545",
-              background: "#f8d7da",
-              margin: "20px",
-              borderRadius: "4px",
-            }}
-          >
-            {managerStore.error}
-          </div>
-        )}
-
-        {!managerStore.loading && managerStore.managers.length > 0 && (
+        {!managerStore.loading && getManagersOnly().length > 0 && (
           <ManagerTable>
             <thead>
               <TableHeader>
@@ -366,7 +687,7 @@ export const ManagerManagement = observer(() => {
               </TableHeader>
             </thead>
             <tbody>
-              {managerStore.managers.map((manager) => (
+              {getManagersOnly().map((manager) => (
                 <TableRow key={manager.id}>
                   <TableCell>
                     <div style={{ fontWeight: "600" }}>{manager.name}</div>
@@ -394,7 +715,14 @@ export const ManagerManagement = observer(() => {
                   <TableCell>
                     <TableActions>
                       <IconButton
-                        onClick={() => handleEditClick(manager)}
+                        onClick={() => {
+                          setEditingManager(manager.id);
+                          setFormData({
+                            name: manager.name,
+                            email: manager.email,
+                            password: "",
+                          });
+                        }}
                         title="Редактировать"
                         color="#ffc107"
                       >
@@ -404,8 +732,8 @@ export const ManagerManagement = observer(() => {
                       <IconButton
                         onClick={() =>
                           manager.is_blocked
-                            ? handleUnblockManager(manager.id)
-                            : handleBlockManager(manager.id)
+                            ? managerStore.unblockManager(manager.id)
+                            : managerStore.blockManager(manager.id)
                         }
                         title={
                           manager.is_blocked
@@ -422,7 +750,7 @@ export const ManagerManagement = observer(() => {
                       </IconButton>
 
                       <IconButton
-                        onClick={() => handleDeleteManager(manager.id)}
+                        onClick={() => managerStore.deleteManager(manager.id)}
                         title="Удалить"
                         color="#dc3545"
                       >
@@ -436,14 +764,15 @@ export const ManagerManagement = observer(() => {
           </ManagerTable>
         )}
 
-        {!managerStore.loading && managerStore.managers.length === 0 && (
+        {!managerStore.loading && getManagersOnly().length === 0 && (
           <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
             <div style={{ fontSize: "48px", marginBottom: "10px" }}>👥</div>
             <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>
               Нет созданных менеджеров
             </h4>
             <p style={{ margin: 0 }}>
-              Создайте первого менеджера, используя форму выше
+              Создайте менеджера с помощью формы выше или назначьте роль из
+              списка пользователей
             </p>
           </div>
         )}

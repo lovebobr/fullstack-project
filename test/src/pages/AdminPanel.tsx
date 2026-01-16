@@ -175,32 +175,6 @@ const TablesCount = styled.div`
   border: 1px solid rgba(244, 97, 108, 0.3);
 `;
 
-// Стили для кнопки "Назад"
-const BackButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  color: #495057;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-right: 20px;
-
-  &:hover {
-    background: #e9ecef;
-    border-color: #adb5bd;
-  }
-
-  &:active {
-    background: #dee2e6;
-  }
-`;
-
 export const AdminPanel = observer(() => {
   const [activeTab, setActiveTab] = useState<
     | "dashboard"

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import {
-  Search,
   Filter,
   Calendar,
   User,
@@ -15,20 +14,10 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Edit,
   Trash2,
-  Download,
-  Eye,
-  MoreVertical,
-  TrendingUp,
-  DollarSign,
-  FileText,
 } from "lucide-react";
 import {
   ApplicationsContainer,
-  PageHeader,
-  PageTitle,
-  PageSubtitle,
   ControlsRow,
   SearchInput,
   FilterButton,
@@ -47,9 +36,6 @@ import {
   PaginationButton,
   PaginationInfo,
   EmptyState,
-  ExportButton,
-  StatsGrid,
-  StatsCard,
 } from "../styled/Applications.styles";
 import { applicationsStore } from "../app/store/applications.store";
 
@@ -57,10 +43,7 @@ import { applicationsStore } from "../app/store/applications.store";
 const STATUS_OPTIONS = [
   { value: "pending", label: "Ожидание оплаты", color: "#ffc107" },
   { value: "confirmed", label: "Подтверждено", color: "#28a745" },
-  { value: "cancelled", label: "Отменено", color: "#dc3545" },
-  { value: "completed", label: "Завершено", color: "#17a2b8" },
-  { value: "no_show", label: "Неявка", color: "#6c757d" },
-  { value: "active", label: "Активно", color: "#007bff" },
+  { value: "canceled", label: "Отменено", color: "#dc3545" },
 ];
 
 interface FilterState {
@@ -69,11 +52,8 @@ interface FilterState {
     start: string;
     end: string;
   };
-  restaurant: string[];
   minGuests: number | null;
   maxGuests: number | null;
-  minAmount: number | null;
-  maxAmount: number | null;
 }
 
 export const ApplicationsPage = observer(() => {
@@ -82,11 +62,8 @@ export const ApplicationsPage = observer(() => {
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     dateRange: { start: "", end: "" },
-    restaurant: [],
     minGuests: null,
     maxGuests: null,
-    minAmount: null,
-    maxAmount: null,
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
@@ -140,14 +117,6 @@ export const ApplicationsPage = observer(() => {
       return false;
     }
 
-    // Фильтр по сумме
-    if (filters.minAmount !== null && app.price < filters.minAmount) {
-      return false;
-    }
-    if (filters.maxAmount !== null && app.price > filters.maxAmount) {
-      return false;
-    }
-
     return true;
   });
 
@@ -158,23 +127,6 @@ export const ApplicationsPage = observer(() => {
     startIndex,
     startIndex + itemsPerPage
   );
-
-  // Статистика
-  const stats = {
-    total: applicationsStore.applications.length,
-    pending: applicationsStore.applications.filter(
-      (app) => app.status === "pending"
-    ).length,
-    confirmed: applicationsStore.applications.filter(
-      (app) => app.status === "confirmed"
-    ).length,
-    cancelled: applicationsStore.applications.filter(
-      (app) => app.status === "cancelled"
-    ).length,
-    revenue: applicationsStore.applications
-      .filter((app) => app.status === "confirmed" || app.status === "completed")
-      .reduce((sum, app) => sum + (app.price || 0), 0),
-  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -208,24 +160,12 @@ export const ApplicationsPage = observer(() => {
     setCurrentPage(1);
   };
 
-  const handleAmountFilter = (
-    field: "minAmount" | "maxAmount",
-    value: string
-  ) => {
-    const numValue = value ? parseInt(value) : null;
-    setFilters((prev) => ({ ...prev, [field]: numValue }));
-    setCurrentPage(1);
-  };
-
   const handleClearFilters = () => {
     setFilters({
       status: [],
       dateRange: { start: "", end: "" },
-      restaurant: [],
       minGuests: null,
       maxGuests: null,
-      minAmount: null,
-      maxAmount: null,
     });
     setSearchTerm("");
     setCurrentPage(1);
@@ -235,43 +175,11 @@ export const ApplicationsPage = observer(() => {
     applicationsStore.loadApplications();
   };
 
-  const handleExport = () => {
-    const csvContent = [
-      [
-        "ID",
-        "Клиент",
-        "Email",
-        "Телефон",
-        "Ресторан",
-        "Стол",
-        "Дата",
-        "Гости",
-        "Сумма",
-        "Статус",
-      ].join(","),
-      ...filteredApplications.map((app) =>
-        [
-          app.id,
-          `"${app.user_name}"`,
-          `"${app.user_email}"`,
-          `"${app.user_phone}"`,
-          `"${app.restaurant_name}"`,
-          app.table_number,
-          `"${app.date_time}"`,
-          app.guests_count,
-          app.price,
-          app.status,
-        ].join(",")
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `applications_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
-    link.click();
+  // ПРОСТАЯ ОТМЕНА БРОНИ
+  const handleCancelApplication = async (applicationId: string) => {
+    if (window.confirm("Отменить это бронирование?")) {
+      await applicationsStore.cancelApplication(applicationId);
+    }
   };
 
   const handleChangeStatus = async (
@@ -287,18 +195,6 @@ export const ApplicationsPage = observer(() => {
     if (window.confirm("Удалить эту заявку?")) {
       await applicationsStore.deleteApplication(applicationId);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "—";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const getStatusConfig = (status: string) => {
@@ -534,60 +430,54 @@ export const ApplicationsPage = observer(() => {
               </div>
             </div>
           </FilterSection>
+        </FilterDropdown>
+      )}
 
-          <FilterSection>
-            <FilterLabel>Сумма (₽)</FilterLabel>
-            <div
+      {/* Сообщение об ошибке */}
+      {applicationsStore.error && (
+        <div
+          style={{
+            padding: "15px",
+            margin: "0 0 20px 0",
+            background: "#f8d7da",
+            color: "#dc3545",
+            borderRadius: "4px",
+            border: "1px solid #f5c6cb",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>{applicationsStore.error}</span>
+            <button
+              onClick={() => applicationsStore.clearError()}
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
+                background: "none",
+                border: "none",
+                color: "#dc3545",
+                cursor: "pointer",
+                fontSize: "18px",
               }}
             >
-              <div>
-                <input
-                  type="number"
-                  placeholder="От"
-                  value={filters.minAmount || ""}
-                  onChange={(e) =>
-                    handleAmountFilter("minAmount", e.target.value)
-                  }
-                  min="0"
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    border: "1px solid #dee2e6",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                  }}
-                />
-              </div>
-              <div>
-                <input
-                  type="number"
-                  placeholder="До"
-                  value={filters.maxAmount || ""}
-                  onChange={(e) =>
-                    handleAmountFilter("maxAmount", e.target.value)
-                  }
-                  min="0"
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    border: "1px solid #dee2e6",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                  }}
-                />
-              </div>
-            </div>
-          </FilterSection>
-        </FilterDropdown>
+              ×
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Таблица */}
       {filteredApplications.length > 0 ? (
         <>
+          <div
+            style={{ marginBottom: "10px", color: "#666", fontSize: "14px" }}
+          >
+            Найдено заявок: {filteredApplications.length}
+          </div>
+
           <ApplicationsTable>
             <thead>
               <TableHeader>
@@ -597,7 +487,7 @@ export const ApplicationsPage = observer(() => {
                 <TableCell>Дата и время</TableCell>
                 <TableCell>Гости / Сумма</TableCell>
                 <TableCell>Статус</TableCell>
-                <TableCell style={{ width: "100px" }}>Действия</TableCell>
+                <TableCell style={{ width: "120px" }}>Действия</TableCell>
               </TableHeader>
             </thead>
             <tbody>
@@ -821,6 +711,51 @@ export const ApplicationsPage = observer(() => {
                                   </div>
                                 </div>
                               )}
+
+                              {app.foods && app.foods.length > 0 && (
+                                <div>
+                                  <h4
+                                    style={{
+                                      margin: "0 0 12px 0",
+                                      fontSize: "14px",
+                                      color: "#666",
+                                    }}
+                                  >
+                                    Заказанная еда ({app.foods.length})
+                                  </h4>
+                                  <div
+                                    style={{
+                                      padding: "12px",
+                                      background: "white",
+                                      borderRadius: "6px",
+                                      border: "1px solid #dee2e6",
+                                    }}
+                                  >
+                                    {app.foods.map(
+                                      (food: any, index: number) => (
+                                        <div
+                                          key={food.id || index}
+                                          style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "4px 0",
+                                            borderBottom:
+                                              index < app.foods!.length - 1
+                                                ? "1px solid #f0f0f0"
+                                                : "none",
+                                          }}
+                                        >
+                                          <span>{food.name}</span>
+                                          <span>
+                                            {food.quantity || 1} × {food.price}{" "}
+                                            ₽
+                                          </span>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             <div
@@ -837,32 +772,39 @@ export const ApplicationsPage = observer(() => {
                                 )}
                               </div>
                               <div style={{ display: "flex", gap: "8px" }}>
-                                <ActionButton
-                                  onClick={() =>
-                                    handleChangeStatus(app.id, "confirmed")
-                                  }
-                                  style={{
-                                    background: "#28a745",
-                                    color: "white",
-                                    border: "none",
-                                  }}
-                                >
-                                  <CheckCircle size={14} />
-                                  Подтвердить
-                                </ActionButton>
-                                <ActionButton
-                                  onClick={() =>
-                                    handleChangeStatus(app.id, "cancelled")
-                                  }
-                                  style={{
-                                    background: "#dc3545",
-                                    color: "white",
-                                    border: "none",
-                                  }}
-                                >
-                                  <XCircle size={14} />
-                                  Отменить
-                                </ActionButton>
+                                {app.status === "pending" && (
+                                  <ActionButton
+                                    onClick={() =>
+                                      handleChangeStatus(app.id, "confirmed")
+                                    }
+                                    style={{
+                                      background: "#28a745",
+                                      color: "white",
+                                      border: "none",
+                                    }}
+                                  >
+                                    <CheckCircle size={14} />
+                                    Подтвердить
+                                  </ActionButton>
+                                )}
+
+                                {/* КНОПКА ОТМЕНЫ - ВСЕГДА ДОСТУПНА */}
+                                {app.status !== "canceled" && (
+                                  <ActionButton
+                                    onClick={() =>
+                                      handleCancelApplication(app.id)
+                                    }
+                                    style={{
+                                      background: "#dc3545",
+                                      color: "white",
+                                      border: "none",
+                                    }}
+                                  >
+                                    <XCircle size={14} />
+                                    Отменить
+                                  </ActionButton>
+                                )}
+
                                 <ActionButton
                                   onClick={() =>
                                     handleDeleteApplication(app.id)
