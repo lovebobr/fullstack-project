@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::get('/reservations/{id}', [ReservationController::class, 'show']);
     Route::delete('/reservations/{id}', [ReservationController::class, 'destroy']);
+    Route::post('/reservations/{id}/cancel', [ReservationController::class, 'cancel']);
 
     // Restaurants and tables view
     Route::get('/restaurants/{restaurantId}/tables', [TableController::class, 'index']);
@@ -76,6 +77,8 @@ Route::middleware(['auth:sanctum'])->prefix('manager')->group(function () {
 Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
     // User management
     Route::get('/users', [AdminController::class, 'getUsers']);
+    Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+    Route::patch('/users/{id}/role', [AdminController::class, 'updateRole']);
     Route::post('/users/{id}/block', [AdminController::class, 'blockUser']);
     Route::post('/users/{id}/unblock', [AdminController::class, 'unblockUser']);
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
@@ -91,6 +94,15 @@ Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
     Route::post('/restaurants', [RestaurantController::class, 'store']);
     Route::put('/restaurants/{id}', [RestaurantController::class, 'update']);
     Route::delete('/restaurants/{id}', [RestaurantController::class, 'destroy']);
+
+    Route::post('/restaurants/{restaurantId}/assign-manager', [AdminController::class, 'assignManager']);
+    Route::delete('/restaurants/{restaurantId}/remove-manager/{managerId}', [AdminController::class, 'removeManager']);
+
+
+    //Сережа, посмотри сюда!!!
+    Route::get('/reservations', [AdminController::class, 'getReservations']);
+    Route::put('/reservations/{id}', [AdminController::class, 'updateReservation']);
+    Route::delete('/reservations/{id}', [AdminController::class, 'deleteReservation']);
 
     // Table management
     Route::post('/restaurants/{restaurantId}/tables', [TableController::class, 'store']);
