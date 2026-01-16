@@ -55,7 +55,6 @@ class AuthController extends Controller
         return $request->user();
     }
 
-    // PUT /api/user - обновление профиля пользователя
     public function update(Request $request)
     {
         $user = $request->user();
@@ -67,11 +66,10 @@ class AuthController extends Controller
             'current_password' => 'required_with:password|string',
         ]);
 
-        // Проверка текущего пароля при изменении пароля
         if (isset($validated['password'])) {
             if (!Hash::check($validated['current_password'], $user->password)) {
                 return response()->json([
-                    'message' => 'Current password is incorrect'
+                    'message' => 'Пароль неверный'
                 ], 422);
             }
             $validated['password'] = Hash::make($validated['password']);
@@ -81,7 +79,7 @@ class AuthController extends Controller
         $user->update($validated);
 
         return response()->json([
-            'message' => 'Profile updated successfully',
+            'message' => 'Профиль обновлен',
             'user' => $user->fresh()
         ]);
     }

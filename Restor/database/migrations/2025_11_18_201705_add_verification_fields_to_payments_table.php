@@ -11,8 +11,6 @@ return new class extends Migration
         Schema::table('payments', function (Blueprint $table) {
             $table->timestamp('verified_at')->nullable()->after('meta');
             $table->timestamp('processed_at')->nullable()->after('verified_at');
-
-            // Индексы для оптимизации
             $table->index(['status', 'created_at']);
             $table->index(['user_id', 'created_at']);
         });

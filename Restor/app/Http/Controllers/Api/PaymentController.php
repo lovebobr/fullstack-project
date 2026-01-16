@@ -17,7 +17,6 @@ class PaymentController extends Controller
         $this->middleware('auth:sanctum');
     }
 
-    // POST /api/payments - начальный этап оплаты
     public function store(Request $request)
     {
         $v = Validator::make($request->all(), [
@@ -37,26 +36,22 @@ class PaymentController extends Controller
 
         $data = $v->validated();
 
-        // Luhn check
         if (! $this->luhnCheck($data['card_number'])) {
-            return response()->json(['message' => 'Invalid card number'], 422);
+            return response()->json(['message' => 'Номер карты невалиден'], 422);
         }
 
-        // expiry check
         $exp = \DateTime::createFromFormat('!m Y', sprintf('%02d %04d', $data['card_exp_month'], $data['card_exp_year']));
         if (! $exp) {
-            return response()->json(['message' => 'Invalid expiry date'], 422);
+            return response()->json(['message' => 'Неверная дата истечения'], 422);
         }
         $exp->modify('last day of this month 23:59:59');
         if ($exp < new \DateTime()) {
-            return response()->json(['message' => 'Card expired'], 422);
+            return response()->json(['message' => 'Срок действия карты истек'], 422);
         }
 
-        // Бренд карты и last4
         $cardBrand = $this->detectCardBrand($data['card_number']);
         $last4 = substr(preg_replace('/\D/', '', $data['card_number']), -4);
 
-        // Создаем запись payment в статусе pending
         $payment = Payment::create([
             'user_id' => $request->user()->id,
             'reservation_id' => $data['reservation_id'],
@@ -70,7 +65,6 @@ class PaymentController extends Controller
             ],
         ]);
 
-        // Генерируем и сохраняем код подтверждения
         $smsCode = $this->generateSmsCode();
         $verificationToken = Str::random(32);
 
@@ -80,7 +74,6 @@ class PaymentController extends Controller
             'attempts' => 0,
         ], now()->addMinutes(10));
 
-        // Возвращаем токен для перехода на страницу подтверждения
         return response()->json([
             'verification_token' => $verificationToken,
             'payment_id' => $payment->id,
@@ -89,7 +82,6 @@ class PaymentController extends Controller
         ]);
     }
 
-    // POST /api/payments/verify-sms - подтверждение SMS кода
     public function verifySms(Request $request)
     {
         $v = Validator::make($request->all(), [
@@ -106,13 +98,12 @@ class PaymentController extends Controller
         $verificationData = Cache::get($cacheKey);
 
         if (!$verificationData) {
-            return response()->json(['message' => 'Invalid or expired verification token'], 422);
+            return response()->json(['message' => 'Неверный токен верификации'], 422);
         }
 
-        // Проверяем количество попыток
         if ($verificationData['attempts'] >= 3) {
             Cache::forget($cacheKey);
-            return response()->json(['message' => 'Too many attempts. Please start over.'], 422);
+            return response()->json(['message' => 'Слишком много попыток, начните заново'], 422);
         }
 
         // Проверяем код
@@ -122,18 +113,15 @@ class PaymentController extends Controller
 
             $remainingAttempts = 3 - $verificationData['attempts'];
             return response()->json([
-                'message' => 'Invalid SMS code',
+                'message' => 'Неправильный код',
                 'remaining_attempts' => $remainingAttempts
             ], 422);
         }
 
-        // Код верный - выполняем оплату
         $payment = Payment::findOrFail($verificationData['payment_id']);
 
-        // Отмечаем время подтверждения
         $payment->update(['verified_at' => now()]);
 
-        // Симуляция отправки в банк
         $result = $this->simulateBankRequest([
             'amount_rubles' => $payment->amount_rubles,
             'currency' => $payment->currency,
@@ -141,7 +129,6 @@ class PaymentController extends Controller
             'brand' => $payment->card_brand,
         ]);
 
-        // Обновляем платеж
         $payment->update([
             'status' => $result['status'],
             'provider_reference' => $result['reference'] ?? null,
@@ -151,17 +138,14 @@ class PaymentController extends Controller
             ]),
         ]);
 
-        // Очищаем кэш
         Cache::forget($cacheKey);
 
-        // Генерируем токен для редиректа на финальную страницу
         $resultToken = Str::random(32);
         Cache::put("payment_result:{$resultToken}", [
             'payment_id' => $payment->id,
             'status' => $payment->status,
         ], now()->addMinutes(10));
 
-        // Возвращаем статус платежа из обновленной записи
         return response()->json([
             'success' => true,
             'result_token' => $resultToken,
@@ -170,20 +154,19 @@ class PaymentController extends Controller
         ]);
     }
 
-    // GET /api/payments/result/{token} - получение результата оплаты
     public function getResult($token)
     {
         $cacheKey = "payment_result:{$token}";
         $resultData = Cache::get($cacheKey);
 
         if (!$resultData) {
-            return response()->json(['message' => 'Invalid or expired result token'], 404);
+            return response()->json(['message' => 'Неправильный или истекший токен'], 404);
         }
 
         $payment = Payment::find($resultData['payment_id']);
 
         if (!$payment) {
-            return response()->json(['message' => 'Payment not found'], 404);
+            return response()->json(['message' => 'Платеж не найден'], 404);
         }
 
         return response()->json([

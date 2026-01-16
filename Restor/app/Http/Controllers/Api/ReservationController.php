@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Food;
+use App\Models\Table;
 use App\Models\Reservation;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -12,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 
 class ReservationController extends Controller
 {
-    // GET /api/reservations - список бронирований
     public function index(Request $request)
     {
         try {
@@ -46,56 +46,50 @@ class ReservationController extends Controller
         }
     }
 
-    // POST /api/reservations - создание бронирования
     public function store(Request $request)
-{
-    try {
-        // Сначала получаем текущего пользователя
-        $user = Auth::user();
+    {
+        try {
+            $user = Auth::user();
 
-        // Определяем максимальную длительность
-        $maxDuration = ($user && ($user->isAdmin() || $user->isManager())) ? 24 : 6;
+            $maxDuration = ($user && ($user->isAdmin() || $user->isManager())) ? 24 : 6;
 
-        $validated = $request->validate([
-            'table_id' => 'required|exists:tables,id',
-            'date_time' => 'required|date|after:now',
-            'price' => 'required|numeric|min:0',
-            'duration' => "required|integer|min:2|max:{$maxDuration}",
-            'foods' => 'sometimes|array',
-            'foods.*.food_id' => 'required_with:foods|exists:foods,id',
-            'foods.*.quantity' => 'sometimes|integer|min:1|max:20',
-            'user_name' => 'nullable|string|max:255',
-            'user_phone' => 'nullable|string|max:20',
-            'guests_count' => 'nullable|integer|min:1|max:20',
-            'special_requests' => 'nullable|string',
-        ]);
+            $validated = $request->validate([
+                'table_id' => 'required|exists:tables,id',
+                'date_time' => 'required|date|after:now',
+                'price' => 'required|numeric|min:0',
+                'duration' => "required|integer|min:1|max:{$maxDuration}",
+                'foods' => 'sometimes|array',
+                'foods.*.food_id' => 'required_with:foods|exists:foods,id',
+                'foods.*.quantity' => 'sometimes|integer|min:1|max:20',
+                'user_name' => 'nullable|string|max:255',
+                'user_phone' => 'nullable|string|max:20',
+                'guests_count' => 'nullable|integer|min:1|max:20',
+                'special_requests' => 'nullable|string',
+            ]);
 
+            $table = \App\Models\Table::findOrFail($validated['table_id']);
             $dateTime = $this->normalizeDateTime($validated['date_time']);
             $duration = $validated['duration'] ?? 2;
             $foodsTotal = $this->calculateFoodsTotal($validated['foods'] ?? []);
             $price = max($validated['price'], $foodsTotal);
 
-            // ВРЕМЯ КОНЕЧНОЕ
             $endTime = Carbon::parse($dateTime)->addHours($duration);
+            if ($errorMessage = $this->validateRestaurantHours($table, $dateTime, $endTime->toDateTimeString())) {
+                return response()->json(['message' => $errorMessage], 422);
+            }
 
-            // Проверяем наличие бронирований на пересекающиеся интервалы
             $existingReservation = Reservation::where('table_id', $validated['table_id'])
                 ->where(function ($query) use ($dateTime, $endTime) {
-                    // Проверяем пересечение интервалов
                     $query->where(function ($q) use ($dateTime, $endTime) {
-                        // Новая бронь начинается во время существующей
                         $q->where('date_time', '<=', $dateTime)
                             ->where('end_time', '>', $dateTime);
                     })->orWhere(function ($q) use ($dateTime, $endTime) {
-                        // Новая бронь заканчивается во время существующей
                         $q->where('date_time', '<', $endTime)
                             ->where('end_time', '>=', $endTime);
                     })->orWhere(function ($q) use ($dateTime, $endTime) {
-                        // Новая бронь полностью внутри существующей
                         $q->where('date_time', '>=', $dateTime)
                             ->where('end_time', '<=', $endTime);
                     })->orWhere(function ($q) use ($dateTime, $endTime) {
-                        // Существующая бронь полностью внутри новой
                         $q->where('date_time', '<=', $dateTime)
                             ->where('end_time', '>=', $endTime);
                     });
@@ -135,12 +129,11 @@ class ReservationController extends Controller
 
             return response()->json([
                 'error' => 'Server error',
-                'message' => 'Failed to create reservation',
+                'message' => 'Ошибка создания бронирования',
             ], 500);
         }
     }
 
-    // GET /api/reservations/{id} - показать одну бронь
     public function show($id)
     {
         try {
@@ -157,12 +150,11 @@ class ReservationController extends Controller
 
             return response()->json([
                 'error' => 'Not found',
-                'message' => 'Reservation not found',
+                'message' => 'Бронирование не найдено',
             ], 404);
         }
     }
 
-    // DELETE /api/reservations/{id} - удаление брони
     public function destroy($id)
     {
         try {
@@ -179,18 +171,17 @@ class ReservationController extends Controller
 
             $reservation->delete();
 
-            return response()->json(['message' => 'Reservation deleted successfully']);
+            return response()->json(['message' => 'Бронирование удалено']);
         } catch (\Throwable $e) {
             Log::warning('Reservation destroy error: ' . $e->getMessage(), ['exception' => $e]);
 
             return response()->json([
                 'error' => 'Not found',
-                'message' => 'Reservation not found',
+                'message' => 'Бронирование не найдено',
             ], 404);
         }
     }
 
-    // PUT /api/reservations/{id} - обновление брони (для менеджеров/админов)
     public function update(Request $request, $id)
     {
         try {
@@ -229,7 +220,7 @@ class ReservationController extends Controller
             $reservation->update(['price' => max($deposit, $foodsTotal)]);
 
             return response()->json([
-                'message' => 'Reservation updated successfully',
+                'message' => 'Бронирование обновлено',
                 'reservation' => $reservation,
             ]);
         } catch (\Throwable $e) {
@@ -237,7 +228,7 @@ class ReservationController extends Controller
 
             return response()->json([
                 'error' => 'Server error',
-                'message' => 'Failed to update reservation',
+                'message' => 'Ошибка обновления бронирования',
             ], 500);
         }
     }
@@ -263,7 +254,6 @@ class ReservationController extends Controller
     ]);
 }
 
-    // POST /api/reservations/check-availability - проверка доступности стола
     public function checkAvailability(Request $request)
     {
         try {
@@ -274,27 +264,29 @@ class ReservationController extends Controller
                 'reservation_id' => 'nullable|exists:reservations,id',
             ]);
 
+            $table = \App\Models\Table::findOrFail($validated['table_id']);
             $dateTime = $this->normalizeDateTime($validated['date_time']);
             $duration = $validated['duration'] ?? 2;
             $endTime = Carbon::parse($dateTime)->addHours($duration);
+            if ($errorMessage = $this->validateRestaurantHours($table, $dateTime, $endTime->toDateTimeString())) {
+                return response()->json([
+                    'available' => false,
+                    'message' => $errorMessage
+                ]);
+            }
 
             $query = Reservation::where('table_id', $validated['table_id'])
                 ->where(function ($query) use ($dateTime, $endTime) {
-                    // Проверяем пересечение интервалов
                     $query->where(function ($q) use ($dateTime, $endTime) {
-                        // Новая бронь начинается во время существующей
                         $q->where('date_time', '<=', $dateTime)
                             ->where('end_time', '>', $dateTime);
                     })->orWhere(function ($q) use ($dateTime, $endTime) {
-                        // Новая бронь заканчивается во время существующей
                         $q->where('date_time', '<', $endTime)
                             ->where('end_time', '>=', $endTime);
                     })->orWhere(function ($q) use ($dateTime, $endTime) {
-                        // Новая бронь полностью внутри существующей
                         $q->where('date_time', '>=', $dateTime)
                             ->where('end_time', '<=', $endTime);
                     })->orWhere(function ($q) use ($dateTime, $endTime) {
-                        // Существующая бронь полностью внутри новой
                         $q->where('date_time', '<=', $dateTime)
                             ->where('end_time', '>=', $endTime);
                     });
@@ -316,7 +308,7 @@ class ReservationController extends Controller
 
             return response()->json([
                 'error' => 'Server error',
-                'message' => 'Failed to check availability',
+                'message' => 'Ошибка проверки бронирования',
             ], 500);
         }
     }
@@ -355,4 +347,48 @@ class ReservationController extends Controller
 
         return (float) $total;
     }
+
+    private function validateRestaurantHours(Table $table, string $dateTime, string $endTime): ?string
+{
+    $restaurant = $table->restaurant;
+    $schedule = $restaurant->schedule;
+
+    $bookingStart = Carbon::parse($dateTime);
+    $bookingEnd = Carbon::parse($endTime);
+    $dayOfWeek = $bookingStart->dayOfWeek === 0 ? 7 : $bookingStart->dayOfWeek;
+
+    $daySchedule = $schedule[$dayOfWeek] ?? null;
+
+    if (!$daySchedule || ($daySchedule['is_closed'] ?? false)) {
+        return 'Ресторан закрыт в этоот день';
+    }
+
+    $openTimeStr = $daySchedule['opening_time'] ?? '10:00';
+    $closeTimeStr = $daySchedule['closing_time'] ?? '22:00';
+
+    $openTimeNormalized = substr($openTimeStr, 0, 5);
+    $closeTimeNormalized = substr($closeTimeStr, 0, 5);
+
+    try {
+        $openTime = Carbon::createFromFormat('Y-m-d H:i', $bookingStart->format('Y-m-d') . ' ' . $openTimeNormalized);
+        $closeTime = Carbon::createFromFormat('Y-m-d H:i', $bookingStart->format('Y-m-d') . ' ' . $closeTimeNormalized);
+    } catch (\Exception $e) {
+        return 'Неправильный формат расписания';
+    }
+
+    if ($closeTime->lt($openTime)) {
+        $closeTime->addDay();
+    }
+
+    if ($bookingStart->lt($openTime)) {
+        return 'Бронирование не может быть ранее начала работы ресторана (' . $openTimeNormalized . ').';
+    }
+
+    $maxEndTime = $closeTime->copy()->subHour();
+    if ($bookingEnd->gt($maxEndTime)) {
+        return 'Бронирование выходит за время работы ресторана (' . $closeTimeNormalized . ').';
+    }
+
+    return null;
+}
 }

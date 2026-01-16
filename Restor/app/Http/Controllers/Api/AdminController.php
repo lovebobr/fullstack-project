@@ -15,8 +15,6 @@ class AdminController extends Controller
         $this->middleware('auth:sanctum');
     }
 
-
-    // GET /api/admin/users - список всех пользователей
     public function getUsers(Request $request)
     {
         $users = User::withCount(['reservations', 'payments'])
@@ -26,47 +24,43 @@ class AdminController extends Controller
         return response()->json($users);
     }
 
-    // POST /api/admin/users/{id}/block - блокировка пользователя
     public function blockUser($id, Request $request)
     {
         $user = User::findOrFail($id);
 
         if ($user->isAdmin()) {
             return response()->json([
-                'message' => 'Cannot block admin user'
+                'message' => 'Нельзя заблокировать администратора'
             ], 422);
         }
 
         $user->update(['is_blocked' => true]);
 
         return response()->json([
-            'message' => 'User blocked successfully',
+            'message' => 'Пользователь заблокирован',
             'user' => $user
         ]);
     }
 
-    // POST /api/admin/users/{id}/unblock - разблокировка пользователя
     public function unblockUser($id, Request $request)
     {
         $user = User::findOrFail($id);
         $user->update(['is_blocked' => false]);
 
         return response()->json([
-            'message' => 'User unblocked successfully',
+            'message' => 'Пользователь разблокирован',
             'user' => $user
         ]);
     }
 
-    // PUT /api/admin/users/{id} - обновление пользователя
     public function updateUser($id, Request $request)
     {
         $user = User::findOrFail($id);
         $currentAdmin = $request->user();
 
-        // Админ не может редактировать другого админа
         if ($user->isAdmin() && $user->id !== $currentAdmin->id) {
             return response()->json([
-                'message' => 'Cannot edit another admin user'
+                'message' => 'Вы не можете менять других администраторов'
             ], 422);
         }
 
@@ -78,14 +72,12 @@ class AdminController extends Controller
             'is_blocked' => 'sometimes|boolean',
         ]);
 
-        // Админ не может изменить роль другого админа
         if (isset($validated['role']) && $user->isAdmin() && $user->id !== $currentAdmin->id) {
             return response()->json([
-                'message' => 'Cannot change role of another admin user'
+                'message' => 'Вы не можете менять других администраторов'
             ], 422);
         }
 
-        // Хешируем пароль, если он передан
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         }
@@ -93,12 +85,11 @@ class AdminController extends Controller
         $user->update($validated);
 
         return response()->json([
-            'message' => 'User updated successfully',
+            'message' => 'Юзер обновлен',
             'user' => $user->fresh()
         ]);
     }
 
-    // PATCH /api/admin/users/{id}/role
     public function updateRole(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -126,14 +117,13 @@ class AdminController extends Controller
         ]);
     }
 
-    // DELETE /api/admin/users/{id} - удаление пользователя
     public function deleteUser($id, Request $request)
     {
         $user = User::findOrFail($id);
 
         if ($user->isAdmin()) {
             return response()->json([
-                'message' => 'Cannot delete admin user'
+                'message' => 'Нельзя удалить админа'
             ], 422);
         }
 
@@ -142,12 +132,9 @@ class AdminController extends Controller
         $user->tokens()->delete();
         $user->delete();
 
-        return response()->json(['message' => 'User deleted successfully']);
+        return response()->json(['message' => 'Пользователь удален']);
     }
 
-    // === MANAGER MANAGEMENT ===
-
-    // GET /api/admin/managers - список менеджеров
     public function getManagers(Request $request)
     {
         $managers = User::managers()
@@ -158,7 +145,6 @@ class AdminController extends Controller
         return response()->json($managers);
     }
 
-    // POST /api/admin/managers - создание менеджера
     public function createManager(Request $request)
     {
         $data = $request->validate([
@@ -177,31 +163,28 @@ class AdminController extends Controller
         return response()->json($manager, 201);
     }
 
-    // POST /api/admin/managers/{id}/block - блокировка менеджера
     public function blockManager($id, Request $request)
     {
         $manager = User::managers()->findOrFail($id);
         $manager->update(['is_blocked' => true]);
 
         return response()->json([
-            'message' => 'Manager blocked successfully',
+            'message' => 'Менеджер заблокирован',
             'manager' => $manager
         ]);
     }
 
-    // POST /api/admin/managers/{id}/unblock - разблокировка менеджера
     public function unblockManager($id, Request $request)
     {
         $manager = User::managers()->findOrFail($id);
         $manager->update(['is_blocked' => false]);
 
         return response()->json([
-            'message' => 'Manager unblocked successfully',
+            'message' => 'Менеджер разблокирован',
             'manager' => $manager
         ]);
     }
 
-    // DELETE /api/admin/managers/{id} - удаление менеджера
     public function deleteManager($id, Request $request)
     {
         $manager = User::managers()->findOrFail($id);
@@ -211,7 +194,7 @@ class AdminController extends Controller
         $manager->tokens()->delete();
         $manager->delete();
 
-        return response()->json(['message' => 'Manager deleted successfully']);
+        return response()->json(['message' => 'Менеджер удален']);
     }
 
     public function assignManager(Request $request, $restaurantId)
@@ -231,23 +214,16 @@ class AdminController extends Controller
         return response()->json(['message' => 'Manager removed']);
     }
 
-
-    // GET /api/admin/reservations - список всех бронирований
     public function getReservations(Request $request)
     {
         try {
-            \Log::info('=== ADMIN RESERVATIONS START ===');
-
-            // Проверка авторизации
             if (!$request->user()) {
                 \Log::warning('Unauthorized access attempt');
                 return response()->json([
                     'error' => 'Unauthorized',
-                    'message' => 'Authentication required'
+                    'message' => 'Запрос авторизации'
                 ], 401);
             }
-
-            // Проверка роли
             $user = $request->user();
             \Log::info('Request user:', [
                 'id' => $user->id,
@@ -259,12 +235,11 @@ class AdminController extends Controller
                 \Log::warning('Forbidden access attempt', ['user_role' => $user->role]);
                 return response()->json([
                     'error' => 'Forbidden',
-                    'message' => 'Admin or manager access required',
+                    'message' => 'Доступ только для администратора или менеджера',
                     'user_role' => $user->role
                 ], 403);
             }
 
-            // Загружаем бронирования с отношениями
             $reservations = Reservation::with([
                 'user:id,name,email',
                 'table:id,number,seats,restaurant_id',
@@ -284,7 +259,6 @@ class AdminController extends Controller
                         'user_id' => $reservation->user_id,
                         'table_id' => $reservation->table_id,
 
-                        // Данные пользователя
                         'user' => [
                             'id' => $reservation->user->id ?? null,
                             'name' => $reservation->user->name ?? null,
@@ -292,7 +266,6 @@ class AdminController extends Controller
                             'phone' => $reservation->user->phone ?? null,
                         ],
 
-                        // Данные стола
                         'table' => [
                             'id' => $reservation->table->id ?? null,
                             'number' => $reservation->table->number ?? null,
@@ -300,13 +273,11 @@ class AdminController extends Controller
                             'restaurant_id' => $reservation->table->restaurant_id ?? null,
                         ],
 
-                        // Данные ресторана
                         'restaurant' => [
                             'id' => $reservation->table->restaurant->id ?? null,
                             'name' => $reservation->table->restaurant->name ?? null,
                         ],
 
-                        // Основные данные брони
                         'date_time' => $reservation->date_time,
                         'duration' => $reservation->duration,
                         'end_time' => $reservation->end_time,
@@ -316,7 +287,6 @@ class AdminController extends Controller
                         'status' => $reservation->status,
                         'user_name' => $reservation->user_name,
 
-                        // Даты
                         'created_at' => $reservation->created_at,
                         'updated_at' => $reservation->updated_at,
                     ];
@@ -327,7 +297,6 @@ class AdminController extends Controller
                 'sample' => $reservations->first()
             ]);
 
-            // ВАЖНО: Возвращаем ПРОСТО МАССИВ для фронтенда
             return response()->json($reservations);
 
         } catch (\Exception $e) {
@@ -348,7 +317,6 @@ class AdminController extends Controller
         }
     }
 
-    // PUT /api/admin/reservations/{id} - обновление статуса бронирования
     public function updateReservation($id, Request $request)
     {
         try {
@@ -389,8 +357,7 @@ class AdminController extends Controller
             ], 500);
         }
     }
-
-    // DELETE /api/admin/reservations/{id} - удаление бронирования
+    
     public function deleteReservation($id, Request $request)
     {
         try {
@@ -398,7 +365,6 @@ class AdminController extends Controller
 
             $reservation = Reservation::findOrFail($id);
 
-            // Можно добавить проверку прав
             $user = $request->user();
             if (!in_array($user->role, [User::ROLE_ADMIN, User::ROLE_MANAGER])) {
                 return response()->json([

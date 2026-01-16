@@ -13,8 +13,6 @@ class ManagerController extends Controller
         $this->middleware('auth:sanctum');
     }
 
-
-    // GET /api/manager/users - список пользователей
     public function getUsers(Request $request)
     {
         $users = User::users()
@@ -25,7 +23,6 @@ class ManagerController extends Controller
         return response()->json($users);
     }
 
-    // POST /api/manager/users/{id}/block - блокировка пользователя
     public function blockUser($id, Request $request)
     {
         $user = User::users()->findOrFail($id);
@@ -37,7 +34,6 @@ class ManagerController extends Controller
         ]);
     }
 
-    // POST /api/manager/users/{id}/unblock - разблокировка пользователя
     public function unblockUser($id, Request $request)
     {
         $user = User::users()->findOrFail($id);

@@ -55,7 +55,7 @@ class FoodController extends Controller
         $food = Food::findOrFail($id);
         $food->delete();
 
-        return response()->json(['message' => 'Food deleted successfully']);
+        return response()->json(['message' => 'Блюдо удалено']);
     }
 
     private function validateData(Request $request, bool $isUpdate = false): array

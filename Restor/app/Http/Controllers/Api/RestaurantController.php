@@ -20,7 +20,25 @@ class RestaurantController extends Controller
 
     public function store(Request $request)
     {
-        $restaurant = Restaurant::create($request->only('name', 'address', 'description'));
+        $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'address' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        ]);
+
+        $defaultSchedule = [];
+        for ($day = 1; $day <= 7; $day++) {
+            $defaultSchedule[$day] = [
+                'is_closed' => false,
+                'opening_time' => '10:00',
+                'closing_time' => '22:00',
+            ];
+        }
+
+        $restaurant = Restaurant::create(array_merge($validated, [
+            'schedule' => $defaultSchedule
+        ]));
+
         return response()->json($restaurant, 201);
     }
 
@@ -41,8 +59,14 @@ class RestaurantController extends Controller
 
     public function destroy($id)
     {
-        $restaurant = Restaurant::findOrFail($id);
-        $restaurant->delete();
+        $restaurant = Restaurant::withTrashed()->findOrFail($id);
+
+        if ($restaurant->trashed()) {
+            return response()->json(['message' => 'Ресторан уже удален'], 409);
+        }
+
+        $restaurant->deleteWithRelations();
+
         return response()->noContent();
     }
 }

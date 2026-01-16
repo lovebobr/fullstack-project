@@ -21,41 +21,7 @@ return new class extends Migration
             $table->integer('seats');  // количество мест
             $table->timestamps();
         });
-        $restaurant1 = Restaurant::create([
-            'name' => 'La Tavola',
-            'address' => 'Via Roma 12, Milano',
-            'description' => 'Современный итальянский ресторан с домашней пастой и вином.',
-        ]);
-
-        $restaurant2 = Restaurant::create([
-            'name' => 'Sushi Time',
-            'address' => 'Shinjuku 5-2-1, Tokyo',
-            'description' => 'Аутентичные японские суши и сашими от шефа из Киото.',
-        ]);
-
-        Table::insert([
-            [
-                'restaurant_id' => $restaurant1->id,
-                'number' => 1,
-                'seats' => 2,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'restaurant_id' => $restaurant1->id,
-                'number' => 2,
-                'seats' => 4,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'restaurant_id' => $restaurant1->id,
-                'number' => 3,
-                'seats' => 6,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        
     }
 
 

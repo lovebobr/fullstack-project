@@ -184,7 +184,6 @@ Route::prefix('test')->group(function () {
         }
     });
 
-    // Проверка API
     Route::get('/status', function () {
         return response()->json([
             'status' => 'API is working',

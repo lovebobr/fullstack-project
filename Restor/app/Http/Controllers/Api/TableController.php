@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 
 class TableController extends Controller
 {
-    // GET /api/restaurants/{restaurantId}/tables - список столов ресторана (для всех)
     public function index($restaurantId)
     {
         $tables = Table::where('restaurant_id', $restaurantId)
@@ -19,12 +18,10 @@ class TableController extends Controller
         return response()->json($tables);
     }
 
-    // POST /api/restaurants/{restaurantId}/tables - создание стола (менеджер и админ)
     public function store(Request $request, $restaurantId)
     {
-        // Проверка прав
         if (!$request->user()->isAdmin() && !$request->user()->isManager()) {
-            return response()->json(['message' => 'Forbidden. Manager or Admin access required.'], 403);
+            return response()->json(['message' => 'Нужен аккаунт администратора/менеджера'], 403);
         }
 
         $data = $request->validate([
@@ -32,14 +29,13 @@ class TableController extends Controller
             'seats' => 'required|integer|min:1|max:20',
         ]);
 
-        // Проверяем уникальность номера стола
         $exists = Table::where('restaurant_id', $restaurantId)
             ->where('number', $data['number'])
             ->exists();
 
         if ($exists) {
             return response()->json([
-                'message' => 'Table with this number already exists in this restaurant.'
+                'message' => 'Стол с таким номером уже существует в данном ресторане'
             ], 409);
         }
 
@@ -52,12 +48,10 @@ class TableController extends Controller
         return response()->json($table, 201);
     }
 
-    // PUT /api/tables/{id} - обновление стола (менеджер и админ)
     public function update(Request $request, $id)
     {
-        // Проверка прав
         if (!$request->user()->isAdmin() && !$request->user()->isManager()) {
-            return response()->json(['message' => 'Forbidden. Manager or Admin access required.'], 403);
+            return response()->json(['message' => 'Нужен аккаунт администратора/менеджера'], 403);
         }
 
         $table = Table::findOrFail($id);
@@ -67,7 +61,6 @@ class TableController extends Controller
             'seats' => 'sometimes|integer|min:1|max:20',
         ]);
 
-        // Проверяем уникальность номера стола если он изменяется
         if (isset($data['number']) && $data['number'] != $table->number) {
             $exists = Table::where('restaurant_id', $table->restaurant_id)
                 ->where('number', $data['number'])
@@ -76,7 +69,7 @@ class TableController extends Controller
 
             if ($exists) {
                 return response()->json([
-                    'message' => 'Table with this number already exists in this restaurant.'
+                    'message' => 'Стол с таким номером уже существует в данном ресторане'
                 ], 409);
             }
         }
@@ -85,12 +78,10 @@ class TableController extends Controller
         return response()->json($table);
     }
 
-    // DELETE /api/tables/{id} - удаление стола (менеджер и админ)
     public function destroy(Request $request, $id)
     {
-        // Проверка прав
         if (!$request->user()->isAdmin() && !$request->user()->isManager()) {
-            return response()->json(['message' => 'Forbidden. Manager or Admin access required.'], 403);
+            return response()->json(['message' => 'Нужен аккаунт администратора/менеджера'], 403);
         }
 
         $table = Table::findOrFail($id);
