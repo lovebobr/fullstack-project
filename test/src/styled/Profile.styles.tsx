@@ -2,7 +2,9 @@
 import styled from "styled-components";
 
 export const ProfileContainer = styled.div`
-  font-family: "Isadora Cyr", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Стандартный системный шрифт для всего контейнера */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -85,6 +87,9 @@ export const Avatar = styled.div`
 `;
 
 export const ProfileName = styled.h2`
+  /* Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   margin: 0 0 10px 0;
   font-size: 2.5rem;
   font-weight: normal;
@@ -100,6 +105,8 @@ export const ProfileName = styled.h2`
 `;
 
 export const ProfileRole = styled.p`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 1.1rem;
   color: #ff9500;
   margin: 0;
@@ -144,6 +151,9 @@ export const Section = styled.div`
 `;
 
 export const SectionTitle = styled.h3`
+  /* Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   margin: 0 0 25px 0;
   font-size: 1.8rem;
   font-weight: normal;
@@ -186,6 +196,8 @@ export const FieldGroup = styled.div`
 `;
 
 export const FieldLabel = styled.label`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   color: #ababab;
@@ -198,6 +210,8 @@ export const FieldLabel = styled.label`
 `;
 
 export const FieldValue = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
@@ -217,6 +231,9 @@ export const FieldValue = styled.div`
 `;
 
 export const FieldInput = styled.input`
+  /* Стандартный шрифт для текста */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -225,19 +242,8 @@ export const FieldInput = styled.input`
   color: #ffffff;
   transition: all 0.3s;
   width: 100%;
-  font-family: "Isadora Cyr", sans-serif;
 
-  &:focus {
-    outline: none;
-    border-color: #ff9500;
-    box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.1),
-      0 0 20px rgba(255, 149, 0, 0.2);
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  
   }
 `;
 
@@ -248,6 +254,9 @@ export const ActionButtons = styled.div`
 `;
 
 export const EditButton = styled.button`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -260,7 +269,6 @@ export const EditButton = styled.button`
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
 
   &:hover:not(:disabled) {
     background: rgba(255, 149, 0, 0.1);
@@ -279,6 +287,9 @@ export const EditButton = styled.button`
 `;
 
 export const SaveButton = styled.button`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -291,7 +302,6 @@ export const SaveButton = styled.button`
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
 
   &:hover:not(:disabled) {
     background: #219a52;
@@ -310,6 +320,9 @@ export const SaveButton = styled.button`
 `;
 
 export const CancelButton = styled.button`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -322,7 +335,6 @@ export const CancelButton = styled.button`
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
 
   &:hover:not(:disabled) {
     background: rgba(171, 171, 171, 0.1);
@@ -340,12 +352,17 @@ export const CancelButton = styled.button`
 `;
 
 export const EmptyValue = styled.span`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   color: #6c757d;
   font-style: italic;
   font-weight: normal;
 `;
 
 export const LogoutButton = styled.button`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -359,7 +376,6 @@ export const LogoutButton = styled.button`
   font-size: 16px;
   font-weight: 600;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
   margin: 0 auto;
   min-width: 220px;
 
@@ -395,6 +411,8 @@ export const LoadingOverlay = styled.div`
   }
 
   .loading-text {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     font-size: 18px;
     color: #ababab;
     letter-spacing: 1px;
@@ -421,18 +439,25 @@ export const ErrorMessage = styled.div`
   border: 1px solid rgba(220, 53, 69, 0.3);
 
   .error-title {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     font-size: 24px;
     font-weight: 500;
     margin-bottom: 15px;
   }
 
   .error-message {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     margin-bottom: 30px;
     font-size: 16px;
     line-height: 1.5;
   }
 
   .retry-button {
+    /* Стандартный шрифт для кнопок */
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
     padding: 12px 30px;
     background: #dc3545;
     color: white;
@@ -441,7 +466,6 @@ export const ErrorMessage = styled.div`
     cursor: pointer;
     font-size: 16px;
     font-weight: 600;
-    font-family: "Isadora Cyr", sans-serif;
     transition: all 0.3s;
 
     &:hover {
@@ -465,6 +489,8 @@ export const EmptyState = styled.div`
   }
 
   .empty-title {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     font-size: 24px;
     margin-bottom: 15px;
     color: #ffffff;
@@ -472,6 +498,9 @@ export const EmptyState = styled.div`
   }
 
   .empty-button {
+    /* Стандартный шрифт для кнопок */
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
     padding: 12px 30px;
     background: #ff9500;
     color: white;
@@ -480,7 +509,6 @@ export const EmptyState = styled.div`
     cursor: pointer;
     font-size: 16px;
     font-weight: 600;
-    font-family: "Isadora Cyr", sans-serif;
     margin-top: 25px;
     transition: all 0.3s;
 
@@ -493,6 +521,8 @@ export const EmptyState = styled.div`
 `;
 
 export const ProfileError = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   color: #dc3545;
   background: rgba(220, 53, 69, 0.1);
   padding: 16px 20px;
@@ -535,6 +565,9 @@ export const SectionHeader = styled.div`
 `;
 
 export const RefreshButton = styled.button`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -546,7 +579,6 @@ export const RefreshButton = styled.button`
   font-size: 14px;
   color: #ff9500;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
   font-weight: 600;
 
   &:hover:not(:disabled) {
@@ -679,6 +711,8 @@ export const RestaurantDetails = styled.div`
 `;
 
 export const TableNumber = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-weight: 700;
   color: #ffffff;
   font-size: 22px;
@@ -687,6 +721,8 @@ export const TableNumber = styled.div`
 `;
 
 export const RestaurantName = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -701,6 +737,8 @@ export const RestaurantName = styled.div`
 `;
 
 export const RestaurantId = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -721,6 +759,8 @@ export const StatusSection = styled.div`
 `;
 
 export const StatusBadge = styled.div<{ $bg: string; $text: string }>`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   padding: 8px 18px;
   background: ${(props) => props.$bg};
   color: ${(props) => props.$text};
@@ -734,6 +774,8 @@ export const StatusBadge = styled.div<{ $bg: string; $text: string }>`
 `;
 
 export const ReservationId = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 13px;
   color: #6c757d;
   font-weight: 500;
@@ -763,6 +805,8 @@ export const DetailItem = styled.div`
 `;
 
 export const DetailLabel = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 13px;
   color: #6c757d;
   font-weight: 600;
@@ -774,6 +818,8 @@ export const DetailLabel = styled.div`
 `;
 
 export const DetailValue = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 17px;
   font-weight: 600;
   color: #ffffff;
@@ -787,6 +833,8 @@ export const GuestsInfo = styled.div`
 `;
 
 export const GuestsCount = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 17px;
   font-weight: 600;
   color: #28a745;
@@ -794,6 +842,8 @@ export const GuestsCount = styled.div`
 `;
 
 export const SpecialRequests = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   padding: 16px 20px;
   background: rgba(255, 149, 0, 0.08);
   border-radius: 10px;
@@ -804,6 +854,8 @@ export const SpecialRequests = styled.div`
 `;
 
 export const RequestsLabel = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 15px;
   font-weight: 700;
   color: #ff9500;
@@ -813,6 +865,8 @@ export const RequestsLabel = styled.div`
 `;
 
 export const RequestsText = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 15px;
   color: #ababab;
   line-height: 1.5;
@@ -833,6 +887,9 @@ export const ActionButtonsRow = styled.div`
 export const ActionButton = styled.button<{
   $variant?: "primary" | "success" | "danger" | "outline";
 }>`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   padding: 12px 24px;
   border: none;
   border-radius: 25px;
@@ -840,7 +897,6 @@ export const ActionButton = styled.button<{
   font-weight: 600;
   font-size: 15px;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -926,6 +982,8 @@ export const EmptyReservations = styled.div`
   }
 
   .empty-title {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     font-size: 22px;
     font-weight: 600;
     margin-bottom: 15px;
@@ -934,6 +992,8 @@ export const EmptyReservations = styled.div`
   }
 
   .empty-description {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     font-size: 16px;
     color: #ababab;
     margin-bottom: 30px;
@@ -944,6 +1004,9 @@ export const EmptyReservations = styled.div`
   }
 
   .empty-button {
+    /* Стандартный шрифт для кнопок */
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
     padding: 14px 32px;
     background: #ff9500;
     color: white;
@@ -953,7 +1016,6 @@ export const EmptyReservations = styled.div`
     font-size: 16px;
     font-weight: 600;
     transition: all 0.3s;
-    font-family: "Isadora Cyr", sans-serif;
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -965,4 +1027,186 @@ export const EmptyReservations = styled.div`
       box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);
     }
   }
+`;
+
+export const FoodItemsSection = styled.div`
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+`;
+
+export const FoodItemsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 149, 0, 0.05);
+  border: 1px solid rgba(255, 149, 0, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 10px;
+
+  &:hover {
+    background: rgba(255, 149, 0, 0.1);
+  }
+
+  & > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff9500;
+  }
+`;
+
+export const FoodItemsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  max-height: 400px;
+  overflow-y: auto;
+`;
+
+export const FoodItemCard = styled.div`
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 149, 0, 0.2);
+  }
+`;
+
+export const FoodItemImage = styled.img`
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+`;
+
+export const FoodItemDetails = styled.div`
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+`;
+
+export const FoodItemInfo = styled.div`
+  flex: 1;
+`;
+
+export const FoodItemName = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 4px;
+`;
+
+export const FoodItemDescription = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  font-size: 12px;
+  color: #adb5bd;
+  line-height: 1.4;
+`;
+
+export const FoodItemQuantity = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  min-width: 40px;
+  text-align: center;
+  font-size: 14px;
+  color: #ff9500;
+  font-weight: 600;
+`;
+
+export const FoodItemPrice = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  min-width: 70px;
+  text-align: right;
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 500;
+`;
+
+export const FoodItemTotal = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  min-width: 70px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff9500;
+`;
+
+export const NoFoodItems = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-align: center;
+
+  & > svg {
+    color: #6c757d;
+  }
+
+  & > span {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
+    font-size: 14px;
+    color: #adb5bd;
+  }
+`;
+
+export const FoodSummary = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 149, 0, 0.05);
+  border: 1px solid rgba(255, 149, 0, 0.1);
+  border-radius: 8px;
+  margin-top: 16px;
+`;
+
+export const SummaryItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const SummaryLabel = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  font-size: 14px;
+  color: #adb5bd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const SummaryValue = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
 `;

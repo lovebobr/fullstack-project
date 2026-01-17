@@ -1,7 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Phone as PhoneIcon, User, ShoppingCart } from "lucide-react";
+import { User, ShoppingCart } from "lucide-react";
 import { PATHS } from "../../paths";
 import Button from "./Button";
 import { useAuth } from "../../useAuth";
@@ -18,8 +18,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({
   restaurantName = "Сережка",
-  address = "3000 Wymdolite Street East Lower Winbatch ON NW 3B2",
-  phone = "+1 (326) 234-9932",
   showButtons = true,
   onBookTable,
   onViewMenu,
@@ -72,17 +70,6 @@ const Header: React.FC<HeaderProps> = ({
         </Logo>
 
         <HeaderInfo>
-          <AddressPhone>
-            <Address>
-              <MapPin size={16} />
-              {address}
-            </Address>
-            <Phone>
-              <PhoneIcon size={16} />
-              {phone}
-            </Phone>
-          </AddressPhone>
-
           <RightSection>
             {showButtons && (
               <HeaderButtons>
@@ -152,7 +139,6 @@ const Logo = styled.div`
     margin-bottom: 0;
   }
 `;
-
 const RestaurantName = styled.h1`
   font-size: 2rem;
   margin: 0;
@@ -183,53 +169,6 @@ const HeaderInfo = styled.div`
     align-items: center;
     gap: 3rem;
     width: auto;
-  }
-`;
-
-const AddressPhone = styled.div`
-  text-align: center;
-  order: 3;
-  width: 100%;
-
-  @media (min-width: 768px) {
-    order: 2;
-    text-align: right;
-    width: auto;
-  }
-
-  @media (min-width: 1024px) {
-    order: 1;
-  }
-`;
-
-const Address = styled.p`
-  margin: 0;
-  font-size: 0.95rem;
-  color: #ffffff;
-  line-height: 1.4;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: center;
-  font-family: "Isadora Cyr", sans-serif;
-
-  @media (min-width: 768px) {
-    justify-content: flex-end;
-  }
-`;
-
-const Phone = styled.p`
-  margin: 0.25rem 0 0 0;
-  font-size: 0.95rem;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: center;
-  font-family: "Isadora Cyr", sans-serif;
-
-  @media (min-width: 768px) {
-    justify-content: flex-end;
   }
 `;
 

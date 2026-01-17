@@ -19,6 +19,18 @@ export const CartModal: React.FC = () => {
     getCartForApi,
   } = useCart();
 
+  // Депозит за бронирование
+  const depositAmount = 2000;
+
+  // Итоговая сумма к оплате (берем бОльшую сумму)
+  const finalAmount = Math.max(totalPrice, depositAmount);
+
+  // Нужна ли доплата сверх депозита
+  const isAdditionalPayment = totalPrice > depositAmount;
+  const additionalPayment = isAdditionalPayment
+    ? totalPrice - depositAmount
+    : 0;
+
   const handleClose = () => {
     closeCart();
   };
@@ -28,11 +40,8 @@ export const CartModal: React.FC = () => {
   };
 
   const handleBookTable = () => {
-    // Получаем данные корзины для отправки на API
     const cartData = getCartForApi();
-    console.log("📦 Данные корзины для API:", cartData);
 
-    // Закрываем корзину и переходим к бронированию
     closeCart();
     navigate("/booking");
   };
@@ -43,13 +52,10 @@ export const CartModal: React.FC = () => {
   };
 
   const formatPrice = (price: number) => {
-    return price.toFixed(2) + " ₽";
+    return price + " ₽";
   };
 
   if (!isOpen) return null;
-
-  console.log("🛒 Корзина открыта, товаров:", items.length);
-  console.log("Товары в корзине:", items);
 
   return (
     <ModalOverlay onClick={handleClose}>
@@ -139,14 +145,25 @@ export const CartModal: React.FC = () => {
                   <SummaryLabel>Товары:</SummaryLabel>
                   <SummaryValue>{formatPrice(totalPrice)}</SummaryValue>
                 </SummaryRow>
-                <SummaryRow>
-                  <SummaryLabel>Доставка:</SummaryLabel>
-                  <SummaryValue>Бесплатно</SummaryValue>
-                </SummaryRow>
+
+                {isAdditionalPayment ? (
+                  <>
+                    <SummaryRow>
+                      <SummaryLabel>Депозит:</SummaryLabel>
+                      <SummaryValue>{formatPrice(depositAmount)}</SummaryValue>
+                    </SummaryRow>
+                  </>
+                ) : (
+                  <SummaryRow>
+                    <SummaryLabel>Депозит за стол:</SummaryLabel>
+                    <SummaryValue>{formatPrice(depositAmount)}</SummaryValue>
+                  </SummaryRow>
+                )}
+
                 <Divider />
                 <SummaryRow>
-                  <SummaryLabel>Итого:</SummaryLabel>
-                  <TotalPrice>{formatPrice(totalPrice)}</TotalPrice>
+                  <SummaryLabel>Итого к оплате:</SummaryLabel>
+                  <TotalPrice>{formatPrice(finalAmount)}</TotalPrice>
                 </SummaryRow>
 
                 <ActionButtons>
@@ -162,11 +179,6 @@ export const CartModal: React.FC = () => {
                     Забронировать стол
                   </Button>
                 </ActionButtons>
-
-                <BookingNote>
-                  💡 Сумма заказа ({formatPrice(totalPrice)}) будет добавлена к
-                  депозиту при бронировании стола
-                </BookingNote>
               </CartSummary>
             </>
           )}
@@ -176,7 +188,6 @@ export const CartModal: React.FC = () => {
   );
 };
 
-// Стили
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;

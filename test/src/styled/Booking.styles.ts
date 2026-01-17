@@ -1,91 +1,178 @@
-// styled/booking-style.ts
+// Booking.styles.ts
 import styled from "styled-components";
 
+// CSS переменные для темы
+export const theme = {
+  bgPrimary: "#1a1a1a",
+  bgSecondary: "#2d2d2d",
+  textPrimary: "#ffffff",
+  textSecondary: "#cccccc",
+  accentColor: "#ff9500",
+  borderColor: "#444",
+};
+
+// Основной контейнер
 export const BookingContainer = styled.div`
   font-family: "Isadora Cyr", system-ui, Avenir, Helvetica, Arial, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: ${theme.bgPrimary};
+  color: ${theme.textPrimary};
+  width: 100%;
+  overflow-x: hidden;
 `;
 
+// Контентная область
 export const BookingContent = styled.main`
   flex: 1;
   margin: 0 auto;
   width: 100%;
   max-width: 1400px;
   padding: 2rem;
-`;
+  box-sizing: border-box;
 
-export const PageHeader = styled.div`
-  margin-bottom: 3rem;
-  text-align: center;
-`;
+  @media (max-width: 1400px) {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
 
-export const PageTitle = styled.h1`
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: normal;
-  color: #ffffff;
-  letter-spacing: 1px;
-`;
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 
-export const PageSubtitle = styled.p`
-  font-size: 1.1rem;
-  color: #cccccc;
-  max-width: 600px;
-  margin: 0 auto 2rem;
-  line-height: 1.6;
-`;
-
-export const BookingGrid = styled.div`
-  display: grid;
-  justify-content: center;
-  grid-template-columns: 1fr 400px;
-  gap: 2.5rem;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-    height: auto;
+  @media (max-width: 480px) {
+    padding: 0.75rem;
   }
 `;
 
-export const MapContainer = styled.div`
-  background-color: #2d2d2d;
-  border-radius: 8px;
-  padding: 1.5rem;
-  border: 1px solid #444;
-  display: flex;
-  flex-direction: column;
+// Шапка страницы
+export const PageHeader = styled.div`
+  margin-bottom: 3rem;
+  text-align: center;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    margin-bottom: 2rem;
+  }
 `;
 
+export const PageTitle = styled.h1`
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  margin-bottom: 0.5rem;
+  font-weight: normal;
+  color: ${theme.textPrimary};
+  letter-spacing: 1px;
+  line-height: 1.3;
+`;
+
+export const PageSubtitle = styled.p`
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: ${theme.textSecondary};
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+
+  @media (max-width: 768px) {
+    margin-bottom: 1.5rem;
+  }
+`;
+
+// Основная сетка
+export const BookingGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+  gap: 2.5rem;
+  width: 100%;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+    gap: 2rem;
+  }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+  }
+`;
+
+// Контейнер карты
+export const MapContainer = styled.div`
+  background-color: ${theme.bgSecondary};
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid ${theme.borderColor};
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 600px;
+  max-height: 800px;
+  overflow: hidden;
+
+  @media (max-width: 1200px) {
+    min-height: 500px;
+    max-height: 700px;
+    padding: 1.25rem;
+  }
+
+  @media (max-width: 768px) {
+    min-height: 400px;
+    max-height: 600px;
+    padding: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    min-height: 300px;
+    max-height: 500px;
+    padding: 0.75rem;
+  }
+`;
+
+// Шапка карты
 export const MapHeader = styled.div`
   margin-bottom: 1rem;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    margin-bottom: 0.75rem;
+    gap: 0.75rem;
+  }
 `;
 
 export const MapTitle = styled.h3`
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 2vw, 1.2rem);
   font-weight: normal;
-  color: #ffffff;
+  color: ${theme.textPrimary};
   margin: 0;
 `;
 
+// Легенда
 export const Legend = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    gap: 0.75rem;
+  }
 `;
 
 export const LegendItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #cccccc;
+  font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+  color: ${theme.textSecondary};
+  white-space: nowrap;
 `;
 
 export const LegendColor = styled.div<{ color: string }>`
@@ -93,63 +180,231 @@ export const LegendColor = styled.div<{ color: string }>`
   height: 12px;
   background-color: ${(props) => props.color};
   border-radius: 2px;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: 10px;
+    height: 10px;
+  }
 `;
 
+// Обертка для карты с скроллом
 export const MapWrapper = styled.div`
   flex: 1;
-  overflow: auto;
-  background-color: #1a1a1a;
+  position: relative;
+  background-color: ${theme.bgPrimary};
   border-radius: 4px;
-  border: 1px solid #444;
+  border: 1px solid ${theme.borderColor};
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  /* Включаем скролл во всех направлениях */
+  overflow: auto;
+
+  /* Стилизация скроллбаров */
+  &::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: ${theme.bgSecondary};
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 10px;
+    border: 3px solid ${theme.bgSecondary};
+
+    &:hover {
+      background: #666;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: ${theme.bgSecondary};
+  }
+
+  /* Для Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #555 ${theme.bgSecondary};
 `;
 
+// Контейнер для Stage
+export const StageContainer = styled.div`
+  position: relative;
+  width: fit-content;
+  height: fit-content;
+`;
+
+// Подсказка о скролле
+export const ScrollHint = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(45, 45, 45, 0.9);
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #ccc;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  animation: fadeOut 5s forwards;
+
+  span {
+    font-size: 1rem;
+  }
+
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+    }
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+`;
+
+// Контейнер формы
 export const FormContainer = styled.div`
-  background-color: #2d2d2d;
+  background-color: ${theme.bgSecondary};
   border-radius: 8px;
   padding: 2rem;
-  border: 1px solid #444;
+  border: 1px solid ${theme.borderColor};
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
+
+  @media (max-width: 1200px) {
+    padding: 1.75rem;
+  }
+
+  @media (max-width: 1024px) {
+    position: static;
+    order: -1;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1.25rem;
+    gap: 1.25rem;
+  }
 `;
 
+// Превью даты и времени
+export const DateTimePreview = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  background-color: ${theme.bgSecondary};
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid ${theme.borderColor};
+  margin-bottom: 2rem;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 1.25rem;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 1rem;
+  }
+`;
+
+export const PreviewLabel = styled.div`
+  font-size: 0.85rem;
+  color: ${theme.textSecondary};
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+export const PreviewValue = styled.div`
+  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  font-weight: 600;
+  color: ${theme.textPrimary};
+`;
+
+// Загрузка
+export const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(26, 26, 26, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  z-index: 10;
+`;
+
+export const LoadingText = styled.p`
+  color: ${theme.accentColor};
+  font-size: clamp(1rem, 2vw, 1.2rem);
+`;
+
+// Стили формы
 export const FormHeader = styled.div`
   text-align: center;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid ${theme.borderColor};
   padding-bottom: 1.5rem;
+
+  @media (max-width: 768px) {
+    padding-bottom: 1rem;
+  }
 `;
 
 export const FormTitle = styled.h2`
-  font-size: 1.5rem;
+  font-size: clamp(1.3rem, 2.5vw, 1.5rem);
   font-weight: normal;
-  color: #ffffff;
+  color: ${theme.textPrimary};
   margin: 0 0 0.5rem;
 `;
 
 export const FormSubtitle = styled.p`
-  font-size: 0.9rem;
-  color: #ff9500;
+  font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+  color: ${theme.accentColor};
   margin: 0;
-`;
-
-export const DateTimePicker = styled.div`
-  background-color: #333;
-  border-radius: 6px;
-  padding: 1rem;
-  border: 1px solid #444;
-`;
-
-export const DateTimeLabel = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  color: #cccccc;
 `;
 
 export const FormSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+
+  @media (max-width: 768px) {
+    gap: 0.875rem;
+  }
 `;
 
 export const FormGroup = styled.div`
@@ -159,22 +414,24 @@ export const FormGroup = styled.div`
 `;
 
 export const FormLabel = styled.label`
-  font-size: 0.9rem;
-  color: #cccccc;
+  font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+  color: ${theme.textSecondary};
 `;
 
 export const FormInput = styled.input`
   background-color: #333;
-  border: 1px solid #444;
+  border: 1px solid ${theme.borderColor};
   border-radius: 4px;
-  padding: 0.8rem 1rem;
-  color: #ffffff;
+  padding: clamp(0.7rem, 1.5vw, 0.8rem) clamp(0.8rem, 2vw, 1rem);
+  color: ${theme.textPrimary};
   font-family: "Isadora Cyr", sans-serif;
-  font-size: 0.95rem;
+  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+  width: 100%;
+  box-sizing: border-box;
 
   &:focus {
     outline: none;
-    border-color: #ff9500;
+    border-color: ${theme.accentColor};
   }
 
   &::placeholder {
@@ -184,18 +441,20 @@ export const FormInput = styled.input`
 
 export const FormTextarea = styled.textarea`
   background-color: #333;
-  border: 1px solid #444;
+  border: 1px solid ${theme.borderColor};
   border-radius: 4px;
-  padding: 0.8rem 1rem;
-  color: #ffffff;
+  padding: clamp(0.7rem, 1.5vw, 0.8rem) clamp(0.8rem, 2vw, 1rem);
+  color: ${theme.textPrimary};
   font-family: "Isadora Cyr", sans-serif;
-  font-size: 0.95rem;
+  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
   min-height: 100px;
   resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
 
   &:focus {
     outline: none;
-    border-color: #ff9500;
+    border-color: ${theme.accentColor};
   }
 
   &::placeholder {
@@ -203,49 +462,32 @@ export const FormTextarea = styled.textarea`
   }
 `;
 
-export const GuestCounter = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-export const CounterButton = styled.button`
+// Группа даты и времени
+export const DateTimePicker = styled.div`
   background-color: #333;
-  border: 1px solid #444;
-  color: #ffffff;
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid ${theme.borderColor};
 
-  &:hover:not(:disabled) {
-    background-color: #444;
-    border-color: #ff9500;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  @media (max-width: 768px) {
+    padding: 0.875rem;
   }
 `;
 
-export const CounterValue = styled.span`
-  font-size: 1.2rem;
-  color: #ffffff;
-  min-width: 40px;
-  text-align: center;
+export const DateTimeLabel = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+  color: ${theme.textSecondary};
 `;
 
+// Кнопка отправки
 export const SubmitButton = styled.button`
   background-color: transparent;
-  color: #ff9500;
-  border: 2px solid #ff9500;
-  padding: 1rem;
-  font-size: 1rem;
+  color: ${theme.accentColor};
+  border: 2px solid ${theme.accentColor};
+  padding: clamp(0.875rem, 2vw, 1rem);
+  font-size: clamp(0.9rem, 1.8vw, 1rem);
   font-weight: normal;
   cursor: pointer;
   transition: all 0.3s;
@@ -266,76 +508,116 @@ export const SubmitButton = styled.button`
   }
 `;
 
+// Сообщения
 export const BookedMessage = styled.div`
   text-align: center;
   padding: 2rem;
   background-color: rgba(255, 77, 79, 0.1);
   border: 1px solid #ff4d4f;
   border-radius: 8px;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
 `;
 
 export const BookedTitle = styled.h4`
   color: #ff4d4f;
   margin: 0 0 1rem;
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 2vw, 1.2rem);
   font-weight: normal;
 `;
 
 export const BookedText = styled.p`
-  color: #cccccc;
+  color: ${theme.textSecondary};
   margin: 0;
   line-height: 1.6;
+  font-size: clamp(0.85rem, 1.5vw, 0.95rem);
 `;
 
 export const SelectTableMessage = styled.div`
   text-align: center;
   padding: 3rem 2rem;
+
+  @media (max-width: 768px) {
+    padding: 2rem 1.5rem;
+  }
 `;
 
 export const SelectTableIcon = styled.div`
-  font-size: 3rem;
+  font-size: clamp(2rem, 4vw, 3rem);
   margin-bottom: 1rem;
-  color: #ff9500;
+  color: ${theme.accentColor};
 `;
 
 export const SelectTableText = styled.p`
-  color: #cccccc;
+  color: ${theme.textSecondary};
   margin: 0;
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 1.8vw, 1.1rem);
 `;
 
-export const LoadingOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(26, 26, 26, 0.9);
+// Стили для счетчика гостей
+export const GuestCounter = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  z-index: 10;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  margin: 1rem 0;
 `;
 
-export const LoadingText = styled.p`
-  color: #ff9500;
-  font-size: 1.2rem;
+export const CounterButton = styled.button`
+  width: clamp(32px, 4vw, 40px);
+  height: clamp(32px, 4vw, 40px);
+  border-radius: 50%;
+  border: 2px solid ${theme.accentColor};
+  background-color: transparent;
+  color: ${theme.accentColor};
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(255, 149, 0, 0.1);
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #666;
+    color: #666;
+  }
 `;
-// styled/booking-style.ts (дополнение)
+
+export const CounterValue = styled.span`
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: bold;
+  color: ${theme.textPrimary};
+  min-width: clamp(40px, 5vw, 60px);
+  text-align: center;
+`;
+
+// Длительность бронирования
 export const DurationSelector = styled.div`
   background-color: #333;
   border-radius: 6px;
   padding: 1rem;
-  border: 1px solid #444;
+  border: 1px solid ${theme.borderColor};
   margin-top: 1rem;
+
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+  }
 `;
 
 export const DurationLabel = styled.label`
   display: block;
   margin-bottom: 0.75rem;
-  font-size: 0.95rem;
-  color: #cccccc;
+  font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+  color: ${theme.textSecondary};
   font-weight: 500;
 `;
 
@@ -349,20 +631,20 @@ export const DurationControls = styled.div`
 export const DurationButton = styled.button`
   background-color: #444;
   border: 1px solid #555;
-  color: #ffffff;
-  width: 40px;
-  height: 40px;
+  color: ${theme.textPrimary};
+  width: clamp(36px, 4vw, 40px);
+  height: clamp(36px, 4vw, 40px);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
   font-weight: bold;
 
   &:hover:not(:disabled) {
-    background-color: #ff9500;
+    background-color: ${theme.accentColor};
     border-color: #ffaa33;
     transform: scale(1.05);
   }
@@ -385,33 +667,18 @@ export const DurationValue = styled.div`
 `;
 
 export const DurationDisplay = styled.div`
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
   font-weight: bold;
-  color: #ff9500;
+  color: ${theme.accentColor};
   margin-bottom: 0.25rem;
 `;
 
 export const DurationText = styled.div`
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 1.2vw, 0.85rem);
   color: #999;
 `;
 
-export const DurationInfo = styled.div`
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  background-color: rgba(255, 149, 0, 0.1);
-  border-radius: 4px;
-  border-left: 3px solid #ff9500;
-`;
-
-export const DurationInfoText = styled.p`
-  margin: 0;
-  font-size: 0.85rem;
-  color: #ffcc80;
-  line-height: 1.4;
-`;
-
-// Добавим стили для уведомлений
+// Уведомления
 export const StatusAlert = styled.div<{
   type: "info" | "warning" | "error" | "success";
 }>`
@@ -450,11 +717,16 @@ export const StatusAlert = styled.div<{
         return "";
     }
   }}
+
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
 `;
 
 export const StatusAlertTitle = styled.h4`
   margin: 0 0 0.5rem 0;
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -463,17 +735,22 @@ export const StatusAlertTitle = styled.h4`
 
 export const StatusAlertText = styled.p`
   margin: 0;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 1.3vw, 0.9rem);
   line-height: 1.5;
 `;
 
-// Добавим стили для информации о столе
+// Информация о столе
 export const TableInfo = styled.div`
   background-color: #333;
   border-radius: 6px;
   padding: 1.25rem;
   margin-bottom: 1.5rem;
-  border: 1px solid #444;
+  border: 1px solid ${theme.borderColor};
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+  }
 `;
 
 export const TableInfoHeader = styled.div`
@@ -485,8 +762,8 @@ export const TableInfoHeader = styled.div`
 
 export const TableNumber = styled.h3`
   margin: 0;
-  font-size: 1.5rem;
-  color: #ff9500;
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  color: ${theme.accentColor};
   font-weight: 600;
 `;
 
@@ -494,149 +771,26 @@ export const TableCapacity = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 1.5vw, 0.9rem);
   color: #999;
-`;
-
-export const TableCapacityIcon = styled.span`
-  font-size: 1rem;
 `;
 
 export const TableCapacityText = styled.span`
   font-weight: 500;
-  color: #fff;
+  color: ${theme.textPrimary};
 `;
 
-// Добавим стили для выбора даты и времени
-export const DateTimeSection = styled.div`
-  background-color: #333;
-  border-radius: 6px;
-  padding: 1.5rem;
-  border: 1px solid #444;
-  margin-bottom: 1.5rem;
-`;
-
-export const DateTimeSectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-`;
-
-export const DateTimeTitle = styled.h4`
-  margin: 0;
-  font-size: 1.1rem;
-  color: #fff;
-  font-weight: 500;
-`;
-
-export const DateTimeDisplay = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background-color: #444;
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
-  margin-top: 1rem;
-`;
-
-export const DateTimeItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-export const DateTimeValue = styled.span`
-  font-size: 1.1rem;
-  color: #fff;
-  font-weight: 500;
-`;
-
-export const DateTimeSeparator = styled.span`
-  color: #666;
-  font-size: 1rem;
-`;
-
-// Добавим стили для формы гостей
-export const GuestsSection = styled.div`
-  background-color: #333;
-  border-radius: 6px;
-  padding: 1.5rem;
-  border: 1px solid #444;
-  margin-bottom: 1.5rem;
-`;
-
-export const GuestsHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-`;
-
-export const GuestsTitle = styled.h4`
-  margin: 0;
-  font-size: 1.1rem;
-  color: #fff;
-  font-weight: 500;
-`;
-
-export const GuestsCounter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  margin: 1rem 0;
-`;
-
-export const GuestsButton = styled.button`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid #ff9500;
-  background-color: transparent;
-  color: #ff9500;
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: rgba(255, 149, 0, 0.1);
-    transform: scale(1.1);
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-    border-color: #666;
-    color: #666;
-  }
-`;
-
-export const GuestsValue = styled.div`
-  font-size: 2rem;
-  font-weight: bold;
-  color: #fff;
-  min-width: 60px;
-  text-align: center;
-`;
-
-export const GuestsMax = styled.div`
-  text-align: center;
-  font-size: 0.85rem;
-  color: #999;
-  margin-top: 0.5rem;
-`;
-// styled/Booking.styles.ts - добавьте эти стили
-
-// Шаги
+// Шаги (для многошаговой формы)
 export const StepIndicator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 30px 0 40px;
+  margin: 2rem 0;
+
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
 `;
 
 export const Step = styled.div<{ active?: boolean }>`
@@ -646,16 +800,17 @@ export const Step = styled.div<{ active?: boolean }>`
 `;
 
 export const StepNumber = styled.div<{ active?: boolean }>`
-  width: 32px;
-  height: 32px;
+  width: clamp(28px, 3vw, 32px);
+  height: clamp(28px, 3vw, 32px);
   border-radius: 50%;
-  background: ${(props) => (props.active ? "#1890ff" : "#f5f5f5")};
-  color: ${(props) => (props.active ? "white" : "#666")};
+  background: ${(props) => (props.active ? "#1890ff" : "#333")};
+  color: ${(props) => (props.active ? "white" : "#999")};
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  margin-right: 10px;
+  margin-right: 0.5rem;
+  border: 2px solid ${(props) => (props.active ? "#1890ff" : "#444")};
 `;
 
 export const StepLabel = styled.div`
@@ -665,168 +820,63 @@ export const StepLabel = styled.div`
 
 export const StepTitle = styled.div`
   font-weight: 600;
-  font-size: 14px;
+  font-size: clamp(0.75rem, 1.2vw, 0.9rem);
+  color: ${theme.textPrimary};
 `;
 
 export const StepDivider = styled.div`
-  width: 60px;
+  width: clamp(40px, 5vw, 60px);
   height: 2px;
-  background: #e8e8e8;
-  margin: 0 20px;
-`;
+  background: ${theme.borderColor};
+  margin: 0 1rem;
 
-// Выбор даты и времени
-export const DateTimeSelector = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  h3 {
-    margin: 0 0 20px 0;
-    color: #333;
+  @media (max-width: 768px) {
+    display: none;
   }
-`;
-
-export const DateTimeInputs = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-export const DateInput = styled.input`
-  padding: 12px;
-  border: 2px solid #e8e8e8;
-  border-radius: 8px;
-  font-size: 16px;
-  width: 100%;
-
-  &:focus {
-    outline: none;
-    border-color: #1890ff;
-  }
-`;
-
-export const TimeSlots = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 10px;
-`;
-
-export const TimeSlot = styled.div<{ selected?: boolean }>`
-  position: relative;
-  padding: 12px 8px;
-  border: 2px solid ${(props) => (props.selected ? "#1890ff" : "#e8e8e8")};
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  background: ${(props) => (props.selected ? "#e6f7ff" : "white")};
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #1890ff;
-  }
-`;
-
-export const SlotTime = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-`;
-
-export const SlotLabel = styled.div`
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
-`;
-
-export const SlotIndicator = styled.div<{ selected?: boolean }>`
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${(props) => (props.selected ? "#1890ff" : "transparent")};
-`;
-
-// Информация о доступных столах
-export const AvailableTablesInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-  border-radius: 8px;
-`;
-
-export const TablesCount = styled.div`
-  font-size: 24px;
-  font-weight: bold;
-  color: #52c41a;
 `;
 
 // Навигация по шагам
 export const StepNavigation = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-top: 30px;
-  gap: 15px;
+  margin-top: 2rem;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 `;
 
 export const BackButton = styled.button`
-  padding: 10px 20px;
-  background: #f5f5f5;
-  border: 1px solid #d9d9d9;
+  padding: clamp(0.75rem, 1.5vw, 1rem) clamp(1rem, 2vw, 1.5rem);
+  background: #333;
+  border: 1px solid ${theme.borderColor};
   border-radius: 6px;
-  color: #666;
+  color: ${theme.textSecondary};
   cursor: pointer;
-  font-size: 14px;
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  flex: 1;
 
   &:hover {
-    background: #e8e8e8;
+    background: #444;
+    border-color: ${theme.accentColor};
+    color: ${theme.accentColor};
   }
 `;
 
 export const NextButton = styled.button`
-  padding: 10px 20px;
-  background: #1890ff;
+  padding: clamp(0.75rem, 1.5vw, 1rem) clamp(1rem, 2vw, 1.5rem);
+  background: ${theme.accentColor};
   border: none;
   border-radius: 6px;
   color: white;
   cursor: pointer;
-  font-size: 14px;
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
   font-weight: 500;
+  flex: 1;
 
   &:hover {
-    background: #40a9ff;
+    background: #ffaa33;
   }
-`;
-
-// Превью даты и времени
-export const DateTimePreview = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  background: #fafafa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  position: relative;
-`;
-
-export const PreviewLabel = styled.div`
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 4px;
-`;
-
-export const PreviewValue = styled.div`
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
 `;

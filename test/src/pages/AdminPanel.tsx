@@ -24,9 +24,14 @@ import {
   User,
   BookOpen,
   MapPin,
-  ArrowLeft,
   FileText,
 } from "lucide-react";
+import { BookingPage } from "./BookingPage";
+import { ManagerManagement } from "./ManagerManagement";
+import { Profile } from "./Profile";
+import { managerStore } from "../app/store/manager.store";
+
+// Импортируем все стили из отдельного файла
 import {
   AdminLayout,
   Sidebar,
@@ -42,7 +47,26 @@ import {
   StatLabel,
   StatIcon,
   UserProfile,
+  RestaurantGrid,
+  RestaurantCard,
+  RestaurantImage,
+  RestaurantIcon,
+  RestaurantContent,
+  RestaurantName,
+  RestaurantInfo,
+  InfoRow,
+  RestaurantFooter,
+  TablesCount,
+  AdminBookingContainer,
+  AdminBookingContent,
+  AdminBookingGrid,
+  AdminMapContainer,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SectionTitle,
 } from "../styled/AdminPanel.styles";
+
 import {
   RestaurantForm,
   FormInput,
@@ -56,124 +80,6 @@ import {
   IconButton,
   StatusBadge,
 } from "../styled/Restaurant.styles";
-import { BookingPage } from "./BookingPage";
-import { ManagerManagement } from "./ManagerManagement";
-import { Profile } from "./Profile";
-import { managerStore } from "../app/store/manager.store";
-import styled from "styled-components";
-
-// Стили для карточек ресторанов
-const RestaurantGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-`;
-
-const RestaurantCard = styled.div`
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #eaeaea;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    border-color: #f4616c;
-  }
-`;
-
-const RestaurantImage = styled.div`
-  width: 100%;
-  height: 180px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(244, 97, 108, 0.05);
-  border-bottom: 1px solid #eaeaea;
-`;
-
-const RestaurantIcon = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  z-index: 2;
-
-  svg {
-    width: 70px;
-    height: 70px;
-    color: rgba(244, 97, 108, 0.3);
-  }
-`;
-
-const RestaurantContent = styled.div`
-  padding: 1.25rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-`;
-
-const RestaurantName = styled.h3`
-  margin: 0 0 0.75rem 0;
-  color: #2c3e50;
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-align: center;
-`;
-
-const RestaurantInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  flex: 1;
-`;
-
-const InfoRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  color: #6c757d;
-  font-size: 0.9rem;
-  line-height: 1.4;
-
-  svg {
-    color: #f4616c;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-`;
-
-const RestaurantFooter = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid #eaeaea;
-`;
-
-const TablesCount = styled.div`
-  display: inline-block;
-  background: rgba(244, 97, 108, 0.1);
-  color: #f4616c;
-  padding: 0.35rem 0.85rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border: 1px solid rgba(244, 97, 108, 0.3);
-`;
 
 export const AdminPanel = observer(() => {
   const [activeTab, setActiveTab] = useState<
@@ -234,7 +140,19 @@ export const AdminPanel = observer(() => {
       if (!isAdmin) return;
 
       try {
-        await restaurantStore.createRestaurant(formData);
+        const restaurantData = {
+          name: formData.name,
+          address: formData.address,
+          description: formData.description,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          email: "",
+          opening_hours: "",
+          is_active: true,
+          manager_id: null,
+        };
+
+        await restaurantStore.createRestaurant(restaurantData);
         setFormData({ name: "", address: "", description: "" });
         restaurantStore.loadRestaurants();
       } catch (error) {
@@ -291,13 +209,11 @@ export const AdminPanel = observer(() => {
     setFormData({ name: "", address: "", description: "" });
   }, []);
 
-  // Открываем страницу бронирования для ресторана
   const handleOpenBookingPage = useCallback((restaurantId: number) => {
     setBookingRestaurantId(restaurantId);
     setActiveTab("bookings");
   }, []);
 
-  // Закрываем страницу бронирования
   const handleCloseBookingPage = useCallback(() => {
     setBookingRestaurantId(null);
     setActiveTab("restaurants");
@@ -305,11 +221,7 @@ export const AdminPanel = observer(() => {
 
   const DashboardContent = useMemo(() => {
     if (isLoading) {
-      return (
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Загрузка данных...
-        </div>
-      );
+      return <LoadingState>Загрузка данных...</LoadingState>;
     }
 
     const totalTables = restaurantStore.restaurants.reduce(
@@ -383,32 +295,11 @@ export const AdminPanel = observer(() => {
               </div>
             </StatCard>
           )}
-
-          <StatCard>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <div>
-                <StatValue>0</StatValue>
-                <StatLabel>Броней сегодня</StatLabel>
-              </div>
-              <StatIcon
-                style={{ backgroundColor: "#9C46AE15", color: "#9C46AE" }}
-              >
-                <Calendar size={24} />
-              </StatIcon>
-            </div>
-          </StatCard>
         </StatsGrid>
       </div>
     );
   }, [restaurantStore.restaurants, isAdmin, isManager, isLoading]);
 
-  // Мемоизированный компонент управления ресторанами
   const RestaurantsContent = useMemo(() => {
     const handleEditClick = (restaurant: any) => {
       if (!isAdmin) return;
@@ -421,11 +312,7 @@ export const AdminPanel = observer(() => {
     };
 
     if (isLoading) {
-      return (
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Загрузка ресторанов...
-        </div>
-      );
+      return <LoadingState>Загрузка ресторанов...</LoadingState>;
     }
 
     return (
@@ -607,7 +494,6 @@ export const AdminPanel = observer(() => {
           </RestaurantForm>
         )}
 
-        {/* Таблица ресторанов */}
         <div
           style={{
             background: "white",
@@ -653,25 +539,11 @@ export const AdminPanel = observer(() => {
           </div>
 
           {restaurantStore.loading && (
-            <div
-              style={{ padding: "40px", textAlign: "center", color: "#666" }}
-            >
-              Загрузка ресторанов...
-            </div>
+            <LoadingState>Загрузка ресторанов...</LoadingState>
           )}
 
           {restaurantStore.error && (
-            <div
-              style={{
-                padding: "20px",
-                color: "#dc3545",
-                background: "#f8d7da",
-                margin: "20px",
-                borderRadius: "4px",
-              }}
-            >
-              {restaurantStore.error}
-            </div>
+            <ErrorState>{restaurantStore.error}</ErrorState>
           )}
 
           {!restaurantStore.loading &&
@@ -789,9 +661,7 @@ export const AdminPanel = observer(() => {
 
           {!restaurantStore.loading &&
             restaurantStore.restaurants.length === 0 && (
-              <div
-                style={{ padding: "40px", textAlign: "center", color: "#666" }}
-              >
+              <EmptyState>
                 <div style={{ fontSize: "48px", marginBottom: "10px" }}>🏪</div>
                 <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>
                   {isAdmin
@@ -803,7 +673,7 @@ export const AdminPanel = observer(() => {
                     ? "Создайте первый ресторан, используя форму выше"
                     : "Обратитесь к администратору для назначения ресторана"}
                 </p>
-              </div>
+              </EmptyState>
             )}
         </div>
       </div>
@@ -825,54 +695,22 @@ export const AdminPanel = observer(() => {
     isLoading,
   ]);
 
-  // Компонент для бронирования - карточки ресторанов
   const BookingsContent = useMemo(() => {
     if (isLoading) {
-      return (
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Загрузка ресторанов...
-        </div>
-      );
+      return <LoadingState>Загрузка ресторанов...</LoadingState>;
     }
 
     return (
       <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginBottom: "20px",
-          }}
-        >
-          <BookOpen size={20} />
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#2c3e50",
-            }}
-          >
-            Выберите ресторан для бронирования
-          </h2>
-        </div>
+        <SectionTitle>
+          <BookOpen size={24} />
+          Выберите ресторан для бронирования
+        </SectionTitle>
 
         {restaurantStore.loading ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
-            Загрузка ресторанов...
-          </div>
+          <LoadingState>Загрузка ресторанов...</LoadingState>
         ) : restaurantStore.error ? (
-          <div
-            style={{
-              padding: "20px",
-              color: "#dc3545",
-              background: "#f8d7da",
-              borderRadius: "4px",
-            }}
-          >
-            {restaurantStore.error}
-          </div>
+          <ErrorState>{restaurantStore.error}</ErrorState>
         ) : restaurantStore.restaurants.length > 0 ? (
           <RestaurantGrid>
             {restaurantStore.restaurants.map((restaurant) => (
@@ -915,15 +753,7 @@ export const AdminPanel = observer(() => {
             ))}
           </RestaurantGrid>
         ) : (
-          <div
-            style={{
-              padding: "2rem",
-              textAlign: "center",
-              background: "white",
-              borderRadius: "8px",
-              border: "1px solid #eaeaea",
-            }}
-          >
+          <EmptyState>
             <div style={{ fontSize: "48px", marginBottom: "10px" }}>🏪</div>
             <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>
               Нет доступных ресторанов
@@ -933,11 +763,32 @@ export const AdminPanel = observer(() => {
                 ? "Создайте ресторан для возможности бронирования"
                 : "Обратитесь к администратору для назначения ресторана"}
             </p>
-          </div>
+          </EmptyState>
         )}
       </div>
     );
   }, [isLoading, restaurantStore, handleOpenBookingPage, isAdmin]);
+
+  const AdminBookingPageContent = useMemo(() => {
+    if (!bookingRestaurantId) return null;
+
+    return (
+      <AdminBookingContainer>
+        <AdminBookingContent>
+          <AdminBookingGrid>
+            <AdminMapContainer>
+              <BookingPage
+                restaurantId={bookingRestaurantId}
+                onClose={handleCloseBookingPage}
+                hideHeader={true}
+                adminMode={true}
+              />
+            </AdminMapContainer>
+          </AdminBookingGrid>
+        </AdminBookingContent>
+      </AdminBookingContainer>
+    );
+  }, [bookingRestaurantId, handleCloseBookingPage]);
 
   // Если открыта страница бронирования для конкретного ресторана
   if (bookingRestaurantId) {
@@ -947,13 +798,6 @@ export const AdminPanel = observer(() => {
           <SidebarHeader>
             <h3>{isAdmin ? "Админ Панель" : "Панель Менеджера"}</h3>
           </SidebarHeader>
-
-          <SidebarItem onClick={handleCloseBookingPage}>
-            <SidebarIcon>
-              <BookOpen size={20} />
-            </SidebarIcon>
-            <span>Назад к списку</span>
-          </SidebarItem>
 
           <SidebarItem
             active={activeTab === "dashboard"}
@@ -1078,108 +922,58 @@ export const AdminPanel = observer(() => {
             </UserProfile>
           </ContentHeader>
 
-          <ContentBody>
-            <BookingPage
-              restaurantId={bookingRestaurantId}
-              onClose={handleCloseBookingPage}
-            />
-          </ContentBody>
+          <ContentBody>{AdminBookingPageContent}</ContentBody>
         </MainContent>
       </AdminLayout>
     );
   }
 
-  // Если показываем редактор - СКРЫВАЕМ САЙДБАР, ОСТАВЛЯЕМ КНОПКУ НАЗАД
+  // Если показываем редактор
   if (showEditor && selectedRestaurantId) {
     return (
       <AdminLayout>
         <MainContent style={{ marginLeft: 0, width: "100%" }}>
-          <ContentHeader
-            style={{
-              borderRadius: 0,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                width: "100%",
+          <ContentHeader>
+            <h1 style={{ margin: 0 }}>Редактор карты зала</h1>
+
+            <UserProfile
+              onClick={() => {
+                handleCloseEditor();
+                setActiveTab("profile");
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "12px" }}
-              >
-                <button
-                  onClick={handleCloseEditor}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 16px",
-                    background: "#f8f9fa",
-                    border: "1px solid #dee2e6",
-                    borderRadius: "6px",
-                    color: "#495057",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#e9ecef";
-                    e.currentTarget.style.borderColor = "#adb5bd";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#f8f9fa";
-                    e.currentTarget.style.borderColor = "#dee2e6";
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  Вернуться к списку
-                </button>
-                <h1 style={{ margin: 0 }}>Редактор карты зала</h1>
-              </div>
-              <UserProfile
-                onClick={() => {
-                  handleCloseEditor();
-                  setActiveTab("profile");
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  backgroundColor: isAdmin ? "#667eea" : "#4facfe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  marginRight: "8px",
                 }}
               >
+                {currentUser?.name?.charAt(0).toUpperCase() || "U"}
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontWeight: "500", fontSize: "14px" }}>
+                  {currentUser?.name}
+                </div>
                 <div
                   style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    backgroundColor: isAdmin ? "#667eea" : "#4facfe",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                    marginRight: "8px",
+                    fontSize: "12px",
+                    color: "#666",
+                    fontWeight: "normal",
                   }}
                 >
-                  {currentUser?.name?.charAt(0).toUpperCase() || "U"}
+                  {isAdmin ? "Администратор" : "Менеджер"}
                 </div>
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontWeight: "500", fontSize: "14px" }}>
-                    {currentUser?.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#666",
-                      fontWeight: "normal",
-                    }}
-                  >
-                    {isAdmin ? "Администратор" : "Менеджер"}
-                  </div>
-                </div>
-              </UserProfile>
-            </div>
+              </div>
+            </UserProfile>
           </ContentHeader>
           <ContentBody style={{ paddingTop: "1rem" }}>
             <Editor restaurantId={selectedRestaurantId} userRole={userRole} />
@@ -1201,14 +995,7 @@ export const AdminPanel = observer(() => {
             height: "100vh",
           }}
         >
-          <div style={{ textAlign: "center" }}>
-            <div className="spinner-border" role="status">
-              <span className="visually-hidden">Загрузка...</span>
-            </div>
-            <p style={{ marginTop: "20px", color: "#666" }}>
-              Проверка авторизации...
-            </p>
-          </div>
+          <LoadingState>Проверка авторизации...</LoadingState>
         </div>
       </AdminLayout>
     );

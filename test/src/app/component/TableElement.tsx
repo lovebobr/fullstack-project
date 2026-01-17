@@ -16,6 +16,7 @@ interface TableItem {
   imageUrl: string;
   isBooked: boolean;
   tableType: string;
+  
 }
 
 interface Props {

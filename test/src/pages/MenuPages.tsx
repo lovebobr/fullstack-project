@@ -12,10 +12,6 @@ const MenuPage: React.FC = () => {
   const navigate = useNavigate();
   const { foods, loading, error, reload } = useFoodMenu();
 
-  const handleAddToCart = (food: any) => {
-    console.log("Added to cart:", food);
-    alert(`${food.name} добавлен в корзину!`);
-  };
   const handleViewMenu = () => {
     navigate(PATHS.MENU);
   };
@@ -63,11 +59,7 @@ const MenuPage: React.FC = () => {
           <>
             <FoodGrid>
               {foods.map((food) => (
-                <FoodCard
-                  key={food.id}
-                  food={food}
-                  onAddToCart={handleAddToCart}
-                />
+                <FoodCard key={food.id} food={food} />
               ))}
             </FoodGrid>
 
@@ -87,17 +79,14 @@ const MenuPage: React.FC = () => {
           </>
         )}
       </ContentContainer>
-
-      <Footer>
-        <FooterText>F&B Restaurant Group | Центр - 2023</FooterText>
-      </Footer>
     </MenuPageContainer>
   );
 };
 
-// Упрощенные стили (без секции фильтров)
 const MenuPageContainer = styled.div`
-  font-family: "Isadora Cyr", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Стандартный системный шрифт для всего контейнера */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -106,7 +95,7 @@ const MenuPageContainer = styled.div`
 `;
 
 const HeroSection = styled.section`
-  padding: 4rem 0 0 0;
+  padding: 2rem 0 0 0;
   background: linear-gradient(rgba(26, 26, 26, 0.9), rgba(26, 26, 26, 0.7)),
     url("/images/menu-banner.jpg");
   background-size: cover;
@@ -120,7 +109,10 @@ const HeroContent = styled.div`
 `;
 
 const HeroTitle = styled.h1`
-  font-size: 1.5rem;
+  /* Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
+  font-size: 3rem;
   margin-bottom: 1.5rem;
   font-weight: normal;
   color: #ffffff;
@@ -133,6 +125,8 @@ const HeroTitle = styled.h1`
 `;
 
 const HeroDescription = styled.p`
+  /* Стандартный шрифт для текста */
+  font-family: inherit; /* Наследует от родителя */
   font-size: 1.3rem;
   line-height: 1.6;
   color: #f0f0f0;
@@ -183,6 +177,8 @@ const LoadingContainer = styled.div`
 `;
 
 const LoadingText = styled.p`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 1.2rem;
   color: #cccccc;
 `;
@@ -197,6 +193,8 @@ const ErrorContainer = styled.div`
 `;
 
 const ErrorText = styled.p`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 1.2rem;
   color: #ff6b6b;
   text-align: center;
@@ -212,6 +210,8 @@ const EmptyState = styled.div`
 `;
 
 const EmptyStateText = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 1.2rem;
   color: #cccccc;
   display: flex;
@@ -223,6 +223,7 @@ const EmptyStateText = styled.div`
     color: #ff9500;
   }
 `;
+
 const CallToAction = styled.div`
   margin-top: 4rem;
   padding: 3rem;
@@ -242,30 +243,21 @@ const CallToActionContent = styled.div`
 `;
 
 const CallToActionTitle = styled.h3`
+  /* Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   font-size: 2rem;
   margin-bottom: 1rem;
   color: #ffffff;
 `;
 
 const CallToActionText = styled.p`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   font-size: 1.1rem;
   color: #cccccc;
   margin-bottom: 2rem;
   line-height: 1.6;
-`;
-
-const Footer = styled.footer`
-  background-color: #000000;
-  color: #ffffff;
-  padding: 2rem;
-  text-align: center;
-  margin-top: auto;
-`;
-
-const FooterText = styled.p`
-  margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.8;
 `;
 
 export default MenuPage;

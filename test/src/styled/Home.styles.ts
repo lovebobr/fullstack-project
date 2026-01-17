@@ -1,7 +1,9 @@
 import styled from "styled-components";
 
 export const HomeContainer = styled.div`
-  font-family: "Isadora Cyr", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Убираем Isadora Cyr из контейнера, используем стандартный шрифт */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -49,7 +51,9 @@ export const OutlineButton = styled.button`
   font-weight: normal;
   cursor: pointer;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
+  /* Меняем на стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   border-radius: 25px;
   min-width: 160px;
 
@@ -84,6 +88,9 @@ export const HeroContent = styled.div`
 `;
 
 export const HeroTitle = styled.h2`
+  /* Добавляем Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Делаем курсивом */
   font-size: 3.5rem;
   margin-bottom: 1.5rem;
   font-weight: normal;
@@ -102,11 +109,14 @@ export const HeroTitle = styled.h2`
 `;
 
 export const HeroDescription = styled.p`
+  /* Стандартный системный шрифт для параграфов */
+  font-family: inherit; /* Наследует от body/контейнера */
   font-size: 1.2rem;
   line-height: 1.6;
   color: #f0f0f0;
   max-width: 700px;
   margin: 0 auto;
+  font-style: normal; /* Убираем курсив, если был */
 
   @media (max-width: 768px) {
     font-size: 1.1rem;
@@ -124,6 +134,9 @@ export const WorkingFacts = styled.section`
 `;
 
 export const SectionTitle = styled.h2`
+  /* Isadora Cyr для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   font-size: 1.8rem;
   text-align: center;
   font-weight: normal;
@@ -170,6 +183,8 @@ export const Day = styled.div`
   color: #ffffff;
   font-size: 1rem;
   margin-bottom: 0.5rem;
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
 
   @media (max-width: 768px) {
     font-size: 0.9rem;
@@ -182,6 +197,8 @@ export const Time = styled.div`
   color: #ff9500;
   font-size: 1rem;
   font-weight: 500;
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
 
   @media (max-width: 768px) {
     font-size: 0.9rem;
@@ -198,6 +215,8 @@ export const NoteText = styled.p`
   color: #cccccc;
   text-align: center;
   line-height: 1.4;
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
 `;
 
 export const MenuSection = styled.section`
@@ -223,6 +242,9 @@ export const MenuTextContent = styled.div`
 `;
 
 export const MenuTitle = styled.h3`
+  /* Isadora Cyr для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   font-size: 1.5rem;
   margin-bottom: 2rem;
   font-weight: normal;
@@ -235,6 +257,8 @@ export const Mood = styled.div`
   font-size: 1rem;
   color: #cccccc;
   margin-bottom: 0.5rem;
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
 `;
 
 export const MenuDescription = styled.p`
@@ -243,6 +267,8 @@ export const MenuDescription = styled.p`
   color: #abababff;
   margin-bottom: 3rem;
   font-style: italic;
+  /* Стандартный шрифт для текста, но с курсивом */
+  font-family: inherit;
 `;
 
 export const MenuActions = styled.div`
@@ -318,6 +344,9 @@ export const ContactContent = styled.div`
 `;
 
 export const ContactTitle = styled.h4`
+  /* Isadora Cyr для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   font-size: 2rem;
   margin-bottom: 1.5rem;
   font-weight: normal;
@@ -336,6 +365,8 @@ export const AddressLine = styled.p`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
 
   @media (max-width: 768px) {
     justify-content: center;
@@ -349,22 +380,10 @@ export const PhoneLine = styled.p`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
 
   @media (max-width: 768px) {
     justify-content: center;
   }
-`;
-
-export const Footer = styled.footer`
-  background-color: #1a1a1a;
-  color: #ffffff;
-  padding: 2rem;
-  text-align: center;
-  margin-top: auto;
-`;
-
-export const FooterText = styled.p`
-  margin: 0;
-  font-size: 0.9rem;
-  opacity: 0.8;
 `;

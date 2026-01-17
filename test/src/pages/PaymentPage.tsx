@@ -1,7 +1,6 @@
 // components/payment/PaymentPage.tsx
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { api } from "../shared/lib/axios";
 import {
   Container,
   Header,
@@ -10,7 +9,6 @@ import {
   TwoColumnLayout,
   OrderSummary,
   OrderHeader,
-  OrderIcon,
   OrderTitle,
   OrderGrid,
   OrderItem,
@@ -35,9 +33,9 @@ import {
   CvcInput,
   CheckboxGroup,
   Checkbox,
-  CheckboxLabel,
   Button,
   ButtonContainer,
+  ErrorMessage,
 } from "../styled/Payment.styles";
 import { PATHS } from "../paths";
 import {
@@ -45,8 +43,9 @@ import {
   type Reservation,
 } from "../api/reservation.service";
 import { restaurantStore } from "../app/store/restaurant.store";
+import { PaymentService, PaymentError } from "../api/payment.service";
 
-interface PaymentData {
+interface PaymentFormData {
   cardNumber: string;
   cardExpMonth: string;
   cardExpYear: string;
@@ -54,14 +53,30 @@ interface PaymentData {
   saveCard: boolean;
 }
 
+interface BookingData {
+  reservation_id: number;
+  restaurant: string;
+  date: string;
+  time: string;
+  end_time: string;
+  duration: number;
+  guests: number;
+  tableNumber: string;
+  bookingId: string;
+  amount: number;
+  guests_text: string;
+  status: string;
+}
+
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const reservationId = searchParams.get("reservation_id");
 
-  const [bookingData, setBookingData] = useState<any>(null);
+  const [bookingData, setBookingData] = useState<BookingData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // Функция для правильного отображения количества гостей
   const getGuestsText = (count: number): string => {
@@ -74,6 +89,7 @@ const PaymentPage: React.FC = () => {
     const loadBookingData = async () => {
       if (!reservationId) {
         setPageLoading(false);
+        setErrorMessage("ID бронирования не указан");
         return;
       }
 
@@ -84,14 +100,16 @@ const PaymentPage: React.FC = () => {
 
         // Проверяем статус бронирования
         if (reservation.status === "confirmed") {
-          alert("Это бронирование уже подтверждено. Оплата не требуется.");
-          navigate(PATHS.HOME);
+          setErrorMessage(
+            "Это бронирование уже подтверждено. Оплата не требуется."
+          );
+          setTimeout(() => navigate(PATHS.HOME), 2000);
           return;
         }
 
         if (reservation.status === "cancelled") {
-          alert("Это бронирование было отменено.");
-          navigate(PATHS.HOME);
+          setErrorMessage("Это бронирование было отменено.");
+          setTimeout(() => navigate(PATHS.HOME), 2000);
           return;
         }
 
@@ -153,7 +171,7 @@ const PaymentPage: React.FC = () => {
           dateTime.getTime() + duration * 60 * 60 * 1000
         );
 
-        setBookingData({
+        const bookingData: BookingData = {
           reservation_id: parseInt(reservationId),
           restaurant: restaurantName,
           date: dateTime.toLocaleDateString("ru-RU"),
@@ -172,25 +190,14 @@ const PaymentPage: React.FC = () => {
           amount: reservation.price || 100,
           guests_text: getGuestsText(guestsCount),
           status: reservation.status,
-        });
-      } catch (error) {
-        console.error("Ошибка загрузки данных бронирования:", error);
+        };
 
-        // Fallback если API не отвечает
-        setBookingData({
-          reservation_id: parseInt(reservationId),
-          restaurant: "Ресторан",
-          date: new Date().toLocaleDateString("ru-RU"),
-          time: "19:00",
-          end_time: "21:00",
-          duration: 2,
-          guests: 2,
-          tableNumber: "1",
-          bookingId: `RES_${reservationId}`,
-          amount: 100,
-          guests_text: "2 человека",
-          status: "pending",
-        });
+        setBookingData(bookingData);
+      } catch (error: any) {
+        console.error("Ошибка загрузки данных бронирования:", error);
+        setErrorMessage(
+          "Не удалось загрузить данные бронирования. Пожалуйста, попробуйте позже."
+        );
       } finally {
         setPageLoading(false);
       }
@@ -199,7 +206,7 @@ const PaymentPage: React.FC = () => {
     loadBookingData();
   }, [reservationId, navigate]);
 
-  const [formData, setFormData] = useState<PaymentData>({
+  const [formData, setFormData] = useState<PaymentFormData>({
     cardNumber: "",
     cardExpMonth: "",
     cardExpYear: "",
@@ -379,16 +386,18 @@ const PaymentPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
 
     if (!bookingData?.reservation_id) {
-      alert("Ошибка: данные бронирования не загружены");
+      setErrorMessage("Данные бронирования не загружены");
       return;
     }
 
-    // Проверяем, что бронирование еще не подтверждено
     if (bookingData.status === "confirmed") {
-      alert("Это бронирование уже подтверждено. Оплата не требуется.");
-      navigate(PATHS.HOME);
+      setErrorMessage(
+        "Это бронирование уже подтверждено. Оплата не требуется."
+      );
+      setTimeout(() => navigate(PATHS.HOME), 2000);
       return;
     }
 
@@ -398,25 +407,25 @@ const PaymentPage: React.FC = () => {
       const cleanCardNumber = formData.cardNumber.replace(/\s/g, "");
 
       if (!cleanCardNumber || cleanCardNumber.length < 13) {
-        alert("Неверный номер карты");
+        setErrorMessage("Неверный номер карты");
         setLoading(false);
         return;
       }
 
       if (!validateCardNumber(cleanCardNumber)) {
-        alert("Неверный номер карты");
+        setErrorMessage("Неверный номер карты");
         setLoading(false);
         return;
       }
 
       if (!validateExpiry(formData.cardExpMonth, formData.cardExpYear)) {
-        alert("Неверный срок действия карты");
+        setErrorMessage("Неверный срок действия карты");
         setLoading(false);
         return;
       }
 
       if (!formData.cardCvc || formData.cardCvc.length !== 3) {
-        alert("Введите корректный CVC код (3 цифры)");
+        setErrorMessage("Введите корректный CVC код (3 цифры)");
         setLoading(false);
         return;
       }
@@ -434,23 +443,25 @@ const PaymentPage: React.FC = () => {
         save_card: formData.saveCard,
       };
 
-      const response = await api.post("/payments", paymentPayload);
+      // Используем PaymentService вместо прямого вызова API
+      const response = await PaymentService.createPayment(paymentPayload);
 
-      // ВАЖНО: После успешной оплаты подтверждаем бронирование
+      // Пытаемся подтвердить бронирование
       try {
         await ReservationService.confirm(bookingData.reservation_id);
         console.log("Статус бронирования обновлен на 'confirmed'");
 
         // Обновляем локальный статус
         setBookingData((prev) => ({
-          ...prev,
+          ...prev!,
           status: "confirmed",
         }));
       } catch (confirmError) {
         console.error("Ошибка подтверждения бронирования:", confirmError);
-        // Все равно продолжаем, пользователю покажем успех
+        // Не прерываем процесс, так как платеж создан успешно
       }
 
+      // Переходим на страницу SMS верификации
       navigate(PATHS.SMS_VERIFICATION, {
         state: {
           bookingData: bookingData,
@@ -460,25 +471,18 @@ const PaymentPage: React.FC = () => {
             amount: bookingData.amount,
             currency: "RUB",
           },
-          verificationToken: response.data.verification_token,
-          paymentId: response.data.payment_id,
-          generatedSmsCode: response.data.sms_code,
+          verificationToken: response.verification_token,
+          paymentId: response.payment_id,
+          generatedSmsCode: response.sms_code,
         },
       });
     } catch (error: any) {
       console.error("Ошибка при выполнении платежа:", error);
 
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        if (errors.reservation_id) {
-          alert(`Ошибка бронирования: ${errors.reservation_id[0]}`);
-        } else {
-          alert(`Ошибка оплаты: ${JSON.stringify(errors)}`);
-        }
-      } else if (error.response?.data?.message) {
-        alert(`Ошибка оплаты: ${error.response.data.message}`);
+      if (error instanceof PaymentError) {
+        setErrorMessage(error.message);
       } else {
-        alert("Произошла неизвестная ошибка при обработке платежа");
+        setErrorMessage("Произошла неизвестная ошибка при обработке платежа");
       }
     } finally {
       setLoading(false);
@@ -508,14 +512,18 @@ const PaymentPage: React.FC = () => {
     );
   }
 
-  if (!bookingData) {
+  if (!bookingData || errorMessage) {
     return (
       <Container>
         <Header>
           <MainTitle>Ошибка</MainTitle>
-          <Subtitle>Не удалось загрузить данные бронирования</Subtitle>
+          <Subtitle>
+            {errorMessage || "Не удалось загрузить данные бронирования"}
+          </Subtitle>
         </Header>
-        <p>Бронирование с ID {reservationId} не найдено.</p>
+        <Button onClick={() => navigate(-1)} style={{ marginTop: "20px" }}>
+          Вернуться назад
+        </Button>
       </Container>
     );
   }
@@ -526,6 +534,12 @@ const PaymentPage: React.FC = () => {
         <MainTitle>Оплата бронирования #{bookingData.bookingId}</MainTitle>
         <Subtitle>Введите данные карты для завершения оплаты</Subtitle>
       </Header>
+
+      {errorMessage && (
+        <ErrorMessage style={{ margin: "20px 0" }}>
+          ⚠️ {errorMessage}
+        </ErrorMessage>
+      )}
 
       <TwoColumnLayout>
         <OrderSummary>
@@ -596,6 +610,7 @@ const PaymentPage: React.FC = () => {
                   placeholder="0000 0000 0000 0000"
                   maxLength={19}
                   required
+                  disabled={loading}
                 />
               </CardNumberSection>
 
@@ -617,6 +632,7 @@ const PaymentPage: React.FC = () => {
                       placeholder="ММ"
                       maxLength={2}
                       required
+                      disabled={loading}
                     />
                     <span style={{ opacity: 0.7 }}>/</span>
                     <ExpiryInput
@@ -627,6 +643,7 @@ const PaymentPage: React.FC = () => {
                       placeholder="ГГ"
                       maxLength={2}
                       required
+                      disabled={loading}
                     />
                   </div>
                 </CardDetailGroup>
@@ -641,28 +658,12 @@ const PaymentPage: React.FC = () => {
                     placeholder="000"
                     maxLength={3}
                     required
+                    disabled={loading}
                   />
                 </CardDetailGroup>
               </CardDetailsSection>
             </CardContent>
           </InteractivePaymentCard>
-
-          <CheckboxGroup>
-            <Checkbox
-              type="checkbox"
-              checked={formData.saveCard}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  saveCard: e.target.checked,
-                }))
-              }
-              id="saveCard"
-            />
-            <CheckboxLabel htmlFor="saveCard">
-              Сохранить карту для будущих платежей
-            </CheckboxLabel>
-          </CheckboxGroup>
         </CardColumn>
       </TwoColumnLayout>
 

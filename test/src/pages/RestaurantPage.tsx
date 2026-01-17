@@ -11,7 +11,9 @@ import { useAuth } from "../useAuth";
 import Header from "../app/component/Header";
 
 const Container = styled.div`
-  font-family: "Isadora Cyr", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Стандартный системный шрифт для всего контейнера */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
   background-color: #1a1a1a;
   color: #ffffff;
@@ -26,6 +28,9 @@ const ContentWrapper = styled.div`
 `;
 
 const Title = styled.h1`
+  /* Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   text-align: center;
   margin: 0 0 1rem 0;
   font-weight: normal;
@@ -104,6 +109,9 @@ const RestaurantContent = styled.div`
 `;
 
 const RestaurantName = styled.h3`
+  /* Isadora Cyr только для заголовков */
+  font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+  font-style: italic; /* Курсив */
   margin: 0 0 1rem 0;
   color: #ffffff;
   font-size: 1.3rem;
@@ -121,6 +129,8 @@ const RestaurantInfo = styled.div`
 `;
 
 const InfoRow = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -145,6 +155,8 @@ const RestaurantFooter = styled.div`
 `;
 
 const TablesCount = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   display: inline-block;
   background: rgba(255, 149, 0, 0.1);
   color: #ff9500;
@@ -156,6 +168,8 @@ const TablesCount = styled.div`
 `;
 
 const WorkingHours = styled.div`
+  /* Стандартный шрифт для текста */
+  font-family: inherit;
   color: #cccccc;
   font-size: 0.85rem;
   display: flex;
@@ -181,6 +195,9 @@ const ErrorState = styled.div`
 `;
 
 const ErrorButton = styled.button`
+  /* Стандартный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   padding: 0.5rem 1.5rem;
   background: transparent;
   color: #ff6666;
@@ -188,7 +205,6 @@ const ErrorButton = styled.button`
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-family: "Isadora Cyr", sans-serif;
   font-size: 0.9rem;
   margin-top: 1rem;
 
@@ -203,6 +219,9 @@ const EmptyState = styled.div`
   color: #cccccc;
 
   h3 {
+    /* Isadora Cyr только для заголовков */
+    font-family: "Isadora Cyr", Georgia, "Times New Roman", Times, serif;
+    font-style: italic; /* Курсив */
     margin: 0 0 1rem 0;
     color: #ffffff;
     font-weight: normal;
@@ -210,6 +229,8 @@ const EmptyState = styled.div`
   }
 
   p {
+    /* Стандартный шрифт для текста */
+    font-family: inherit;
     font-size: 1rem;
     color: #ababab;
   }

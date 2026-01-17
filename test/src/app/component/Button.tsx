@@ -72,7 +72,9 @@ const StyledButton = styled.button<{
   font-weight: normal;
   cursor: pointer;
   transition: all 0.3s;
-  font-family: "Isadora Cyr", sans-serif;
+  /* Стандартный системный шрифт для кнопок */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   border-radius: 25px;
   min-width: ${(props) => (props.$variant === "outline" ? "160px" : "auto")};
   width: ${(props) => (props.$fullWidth ? "100%" : "auto")};

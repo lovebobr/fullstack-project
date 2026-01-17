@@ -12,14 +12,13 @@ export const GlobalStyle = createGlobalStyle`
   :root {
     /* Основные цвета как в референсе */
     --color-primary: #1a1a1a;
-    --color-secondary: #d4af37; /* Золотистый */
-    --color-bg-main: #f8f5f2; /* Основной фоновый цвет */
+    --color-secondary: #d4af37;
+    --color-bg-main: #f8f5f2;
     --color-bg-light: #ffffff;
     --color-text-dark: #1a1a1a;
     --color-text-light: #ffffff;
     --color-text-gray: #666666;
     --color-border: #e8e4e0;
-    
   }
 
   * {
@@ -28,8 +27,10 @@ export const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
   }
 
+  /* Основной текст - стандартный системный шрифт */
   body {
-    font-family: 'Isadora Cyr', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                 'Helvetica Neue', Arial, sans-serif;
     color: var(--color-text-dark);
     background-color: var(--color-bg-main);
     line-height: 1.6;
@@ -37,9 +38,21 @@ export const GlobalStyle = createGlobalStyle`
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Если шрифт не подключается, добавьте fallback */
+  /* Все заголовки - Isadora Cyr */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Isadora Cyr', Georgia, 'Times New Roman', Times, serif;
+    font-style: italic;
+    font-weight: normal;
+  }
+
+  /* Элементы, которые наследуют body шрифт */
+  p, span, a, li, div, section, article, button, input, textarea {
+    font-family: inherit; /* Наследует от body */
+  }
+
+  /* Если шрифт не подключается, fallback для заголовков */
   @supports not (font-family: 'Isadora Cyr') {
-    body {
+    h1, h2, h3, h4, h5, h6 {
       font-family: Georgia, 'Times New Roman', Times, serif;
     }
   }
@@ -55,14 +68,12 @@ export const GlobalStyle = createGlobalStyle`
     outline: none;
   }
 
-  /* Сброс стилей для кнопок */
   button, input, select, textarea {
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
   }
 
-  /* Адаптивность */
   @media (max-width: 768px) {
     html {
       font-size: 15px;

@@ -193,8 +193,8 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   const getIcon = () => {
-    if (type === "warning") return <WarningIcon>⚠️</WarningIcon>;
-    if (type === "danger") return <DangerIcon>🔥</DangerIcon>;
+    if (type === "warning") return <WarningIcon></WarningIcon>;
+    if (type === "danger") return <DangerIcon></DangerIcon>;
     return null;
   };
 

@@ -1,4 +1,3 @@
-import { makeAutoObservable } from "mobx";
 import { api } from "../../shared/lib/axios";
 import type { User } from "../../interfaces/aurh.interfaces";
 
@@ -11,21 +10,6 @@ class UserStore {
     role: "",
   };
 
-  constructor() {
-    makeAutoObservable(this);
-  }
-
-  // Установить фильтр
-  setFilter(key: "search" | "role", value: string) {
-    this.filters[key] = value;
-  }
-
-  // Сбросить фильтры
-  resetFilters() {
-    this.filters = { search: "", role: "" };
-  }
-
-  // Загрузить пользователей с фильтрами
   async loadUsers() {
     this.loading = true;
     this.error = null;
@@ -52,15 +36,11 @@ class UserStore {
     }
   }
 
-  // Изменить роль пользователя (user ↔ manager)
   async updateUserRole(userId: number, role: "manager" | "user") {
     this.loading = true;
     this.error = null;
     try {
-      // Используем существующий endpoint PATCH /admin/users/{id}/role
       await api.patch(`/admin/users/${userId}/role`, { role });
-
-      // Обновляем локально
       const userIndex = this.users.findIndex((u) => u.id === userId);
       if (userIndex !== -1) {
         this.users[userIndex].role = role;
@@ -76,12 +56,9 @@ class UserStore {
     }
   }
 
-  // Заблокировать пользователя
   async blockUser(userId: number) {
     try {
       await api.post(`/admin/users/${userId}/block`);
-
-      // Обновляем локально
       const user = this.users.find((u) => u.id === userId);
       if (user) {
         user.is_blocked = true;
@@ -93,13 +70,10 @@ class UserStore {
       throw error;
     }
   }
-
-  // Разблокировать пользователя
   async unblockUser(userId: number) {
     try {
       await api.post(`/admin/users/${userId}/unblock`);
 
-      // Обновляем локально
       const user = this.users.find((u) => u.id === userId);
       if (user) {
         user.is_blocked = false;
@@ -112,14 +86,12 @@ class UserStore {
     }
   }
 
-  // Обновить информацию о пользователе
   async updateUser(userId: number, data: Partial<User>) {
     this.loading = true;
     this.error = null;
     try {
       const response = await api.put(`/admin/users/${userId}`, data);
 
-      // Обновляем локально
       const userIndex = this.users.findIndex((u) => u.id === userId);
       if (userIndex !== -1) {
         this.users[userIndex] = { ...this.users[userIndex], ...data };
@@ -135,12 +107,10 @@ class UserStore {
     }
   }
 
-  // Удалить пользователя
   async deleteUser(userId: number) {
     try {
       await api.delete(`/admin/users/${userId}`);
 
-      // Удаляем локально
       this.users = this.users.filter((u) => u.id !== userId);
       return true;
     } catch (error: any) {
@@ -148,31 +118,6 @@ class UserStore {
         error.response?.data?.message || "Ошибка удаления пользователя";
       throw error;
     }
-  }
-
-  // Получить пользователя по ID
-  getUserById(id: number): User | undefined {
-    return this.users.find((u) => u.id === id);
-  }
-
-  // Получить пользователей по роли
-  getUsersByRole(role: string): User[] {
-    return this.users.filter((u) => u.role === role);
-  }
-
-  // Получить всех менеджеров
-  get managers(): User[] {
-    return this.getUsersByRole("manager");
-  }
-
-  // Получить всех обычных пользователей
-  get regularUsers(): User[] {
-    return this.getUsersByRole("user");
-  }
-
-  // Получить всех администраторов
-  get admins(): User[] {
-    return this.getUsersByRole("admin");
   }
 }
 

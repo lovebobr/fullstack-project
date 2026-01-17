@@ -1,9 +1,7 @@
-// components/booking/BookingPage.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { Stage, Layer, Rect } from "react-konva";
 import { observer } from "mobx-react-lite";
 import { TableElement } from "../app/component/TableElement";
-import { CanvasWrapper } from "../styled/canvas-style";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/ru";
 import type { TableItem, WallItem, WindowItem } from "../app/component/Editor";
@@ -15,10 +13,10 @@ import {
 import { PATHS } from "../paths";
 import { useNavigate } from "react-router-dom";
 import { TABLE_TEMPLATES, EDITOR_COLORS, CANVAS_SIZE } from "../tables";
-import { useAuth } from "../useAuth";
 import Header from "../app/component/Header";
 import { BookingForm } from "../app/component/BookingForm";
 import { DatePicker, Typography } from "antd";
+import { Modal } from "../app/component/ModalConfirm";
 
 import {
   BookingContainer,
@@ -37,13 +35,22 @@ import {
   FormContainer,
   LoadingOverlay,
   LoadingText,
+  DateTimePreview,
+  PreviewLabel,
+  PreviewValue,
+  StageContainer,
+  ScrollHint,
 } from "../styled/Booking.styles";
+import { CartBookingSection } from "../app/component/CartBookingSection";
+import { useCart } from "../CartProvider";
 
 const { Text } = Typography;
 
 interface BookingPageProps {
   restaurantId: number;
   onClose?: () => void;
+  hideHeader?: boolean;
+  adminMode?: boolean;
 }
 
 type CanvasItem = TableItem | WallItem | WindowItem;
@@ -91,11 +98,13 @@ const convertWindowToCanvas = (window: any): WindowItem => ({
   type: "window",
   stroke: window.stroke || EDITOR_COLORS.window,
   strokeWidth: window.strokeWidth || 4,
+  fill: window.fill,
 });
 
 export const BookingPage: React.FC<BookingPageProps> = observer(
-  ({ restaurantId, onClose }) => {
+  ({ restaurantId, onClose, hideHeader = false, adminMode = false }) => {
     const navigate = useNavigate();
+    const { items, totalPrice } = useCart();
     const [layoutItems, setLayoutItems] = useState<CanvasItem[]>([]);
     const [allReservations, setAllReservations] = useState<Reservation[]>([]);
     const [selectedDateTime, setSelectedDateTime] = useState<Dayjs>(dayjs());
@@ -105,7 +114,60 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
     const [restaurantAddress, setRestaurantAddress] = useState<string>("");
     const [restaurantPhone, setRestaurantPhone] = useState<string>("");
     const [duration, setDuration] = useState<number>(2);
-    const { user, loading: authLoading } = useAuth();
+    const [showScrollHint, setShowScrollHint] = useState(true);
+
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalMessage, setModalMessage] = useState("");
+    const [modalTitle, setModalTitle] = useState("");
+    const [modalType, setModalType] = useState<"info" | "warning" | "danger">(
+      "info"
+    );
+    const [modalOnConfirm, setModalOnConfirm] = useState<() => void>(() => {});
+    const [modalConfirmText, setModalConfirmText] = useState("ОК");
+
+    const showModal = (
+      message: string,
+      title: string = "Информация",
+      type: "info" | "warning" | "danger" = "info",
+      onConfirm?: () => void,
+      confirmText: string = "ОК"
+    ) => {
+      setModalMessage(message);
+      setModalTitle(title);
+      setModalType(type);
+      setModalOnConfirm(() => onConfirm || (() => setModalOpen(false)));
+      setModalConfirmText(confirmText);
+      setModalOpen(true);
+    };
+
+    const closeModal = () => {
+      setModalOpen(false);
+    };
+
+    const showError = (message: string, onConfirm?: () => void) => {
+      showModal(message, "Ошибка", "danger", onConfirm);
+    };
+
+    const showWarning = (message: string, onConfirm?: () => void) => {
+      showModal(message, "Внимание", "warning", onConfirm);
+    };
+
+    const showInfo = (message: string, onConfirm?: () => void) => {
+      showModal(message, "Информация", "info", onConfirm);
+    };
+
+    const showReservationSuccess = (reservationId: number) => {
+      showModal(
+        `Бронирование #${reservationId} создано!\n` + `Переходим к оплате...`,
+        "Бронирование создано!",
+        "info",
+        () => {
+          setModalOpen(false);
+          navigate(`${PATHS.PAYMENT}?reservation_id=${reservationId}`);
+        },
+        "Перейти к оплате"
+      );
+    };
 
     useEffect(() => {
       const loadRestaurantData = async () => {
@@ -117,7 +179,6 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
           if (restaurant) {
             setRestaurantName(restaurant.name || "Ресторан");
             setRestaurantAddress(restaurant.address || "");
-            setRestaurantPhone(restaurant.phone || "");
 
             const layout = restaurant.layout_data;
             if (layout) {
@@ -131,7 +192,7 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
           }
         } catch (error) {
           console.error("Ошибка загрузки ресторана:", error);
-          if (onClose) onClose();
+          showError("Не удалось загрузить данные ресторана", onClose);
         } finally {
           setLoading(false);
         }
@@ -153,6 +214,7 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
           setAllReservations(reservationsData);
         } catch (error) {
           console.error("Ошибка загрузки бронирований:", error);
+          showWarning("Не удалось загрузить информацию о бронированиях");
         }
       };
 
@@ -260,7 +322,7 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
       const bookingInfo = getTableBookingInfo(table);
 
       if (bookingInfo.isBooked && bookingInfo.remainingTime) {
-        alert(
+        showWarning(
           `Стол №${table.tableNumber} занят. Занят еще: ${bookingInfo.remainingTime}`
         );
         return;
@@ -268,7 +330,7 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
 
       const pendingReservation = getPendingReservationForTable(table.tableId);
       if (pendingReservation) {
-        alert(
+        showWarning(
           `Стол №${table.tableNumber} ожидает оплаты бронирования. Пожалуйста, выберите другой столик.`
         );
         return;
@@ -279,7 +341,7 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
 
     const handleReserve = async (reservationData: any) => {
       if (!selectedTable?.tableId || !selectedDateTime) {
-        alert("Пожалуйста, выберите стол и дату");
+        showError("Пожалуйста, выберите стол и дату");
         return;
       }
 
@@ -293,13 +355,25 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
         );
 
         if (!availability.available) {
-          alert(
+          showError(
             availability.message ||
-              "Стол уже занят на это время. Пожалуйста, выберите другой столик или время."
+              "Стол уже занят на это время. Пожалуйста, выберите другой столик или время.",
+            () => {
+              setSelectedTable(null);
+            }
           );
-          setSelectedTable(null);
           return;
         }
+
+        // Используем items и totalPrice из замыкания
+        const depositAmount = 2000;
+        const finalAmount = Math.max(totalPrice, depositAmount);
+
+        // Подготавливаем foods для API
+        const foods = items.map((item) => ({
+          food_id: item.food_id || item.id,
+          quantity: item.quantity,
+        }));
 
         const reservationPayload = {
           table_id: selectedTable.tableId,
@@ -309,8 +383,14 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
           guests_count: reservationData.guests_count,
           special_requests: reservationData.special_requests || "",
           duration: duration,
-          price: 100,
+          price: finalAmount,
+          foods: foods,
+          deposit_amount: depositAmount,
+          cart_total: totalPrice,
+          final_amount: finalAmount,
         };
+
+        console.log("Отправляемые данные бронирования:", reservationPayload);
 
         const newReservation = await ReservationService.create(
           reservationPayload
@@ -327,22 +407,21 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
         );
         setAllReservations(updatedReservations);
 
-        alert(
-          `Бронирование #${newReservation.id} создано! Переходим к оплате...\n\n` +
-            `Статус: Ожидает оплаты (pending)\n` +
-            `Стол станет занятым только после подтверждения оплаты.`
-        );
-
-        navigate(`${PATHS.PAYMENT}?reservation_id=${newReservation.id}`);
+        // Используем модальное окно вместо alert
+        showReservationSuccess(newReservation.id, items.length, totalPrice);
       } catch (error: any) {
         console.error("Детали ошибки:", error.response?.data);
+        console.error("Полная ошибка:", error);
 
         if (error.response?.status === 409) {
-          alert(
-            "Стол уже занят на это время. Пожалуйста, выберите другое время или другой столик."
+          showError(
+            "Стол уже занят на это время. Пожалуйста, выберите другое время или другой столик.",
+            () => {
+              setSelectedTable(null);
+            }
           );
         } else {
-          alert(
+          showError(
             `Ошибка: ${
               error.response?.data?.message || "Не удалось создать бронирование"
             }`
@@ -371,7 +450,6 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
       if (date) {
         setSelectedDateTime(date);
       } else {
-        // Если пользователь очистил выбор, устанавливаем текущую дату
         setSelectedDateTime(dayjs());
       }
     };
@@ -425,7 +503,6 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
       return null;
     };
 
-    // Получаем отформатированные дату и время с проверкой
     const formattedDate = selectedDateTime
       ? selectedDateTime.format("DD.MM.YYYY")
       : "Дата не выбрана";
@@ -434,224 +511,304 @@ export const BookingPage: React.FC<BookingPageProps> = observer(
       ? selectedDateTime.format("HH:mm")
       : "--:--";
 
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setShowScrollHint(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }, []);
+
     return (
-      <BookingContainer>
-        <Header
-          restaurantName={restaurantName}
-          address={restaurantAddress}
-          phone={restaurantPhone}
-          showButtons={true}
-          onBookTable={handleBookTable}
-          onViewMenu={handleViewMenu}
-        />
+      <>
+        <BookingContainer>
+          {!hideHeader && (
+            <Header
+              restaurantName={restaurantName}
+              address={restaurantAddress}
+              phone={restaurantPhone}
+              showButtons={true}
+              onBookTable={handleBookTable}
+              onViewMenu={handleViewMenu}
+            />
+          )}
 
-        <BookingContent>
-          <PageHeader>
-            <PageTitle>Бронирование столика</PageTitle>
-            <PageSubtitle>
-              Выберите свободный столик на плане ресторана и укажите дату
-              посещения
-            </PageSubtitle>
-          </PageHeader>
+          <BookingContent className={adminMode ? "admin-content" : ""}>
+            <PageHeader>
+              <PageTitle>Бронирование столика</PageTitle>
+              <PageSubtitle>
+                Выберите свободный столик на плане ресторана и укажите дату
+                посещения
+              </PageSubtitle>
+            </PageHeader>
 
-          {/* Блок выбора времени и даты */}
-          <div
-            style={{
-              marginBottom: "24px",
-              padding: "24px",
-              backgroundColor: "#f6ffed",
-              borderRadius: "8px",
-              border: "1px solid #b7eb8f",
-            }}
-          >
-            <Text
-              strong
-              style={{
-                display: "block",
-                marginBottom: "12px",
-                fontSize: "16px",
-              }}
-            >
-              Выберите дату и время посещения:
-            </Text>
+            {/* Превью выбранной даты и времени */}
+            <DateTimePreview>
+              <div>
+                <PreviewLabel>Дата</PreviewLabel>
+                <PreviewValue>{formattedDate}</PreviewValue>
+              </div>
+              <div>
+                <PreviewLabel>Время</PreviewLabel>
+                <PreviewValue>{formattedTime}</PreviewValue>
+              </div>
+              <div>
+                <PreviewLabel>Длительность</PreviewLabel>
+                <PreviewValue>{duration} часа</PreviewValue>
+              </div>
+              <div>
+                <PreviewLabel>Свободных столов</PreviewLabel>
+                <PreviewValue>
+                  {
+                    tablesWithStatus.filter(
+                      (t) => !t.bookingInfo.isBooked && !t.hasPendingReservation
+                    ).length
+                  }
+                </PreviewValue>
+              </div>
+            </DateTimePreview>
+
+            {/* Блок выбора времени и даты */}
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "16px",
-                flexWrap: "wrap",
-                marginBottom: "16px",
+                marginBottom: "24px",
+                padding: "20px",
+                backgroundColor: "#2d2d2d",
+                borderRadius: "12px",
+                border: "1px solid #444",
               }}
             >
-              <DatePicker
-                showTime
-                format="DD.MM.YYYY HH:mm"
-                value={selectedDateTime}
-                onChange={handleDateTimeChange}
-                style={{ width: 220 }}
-                placeholder="Выберите дату и время"
-                disabledDate={(current) =>
-                  current && current < dayjs().startOf("day")
-                }
-              />
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: "#fff",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  border: "1px solid #d9d9d9",
-                }}
-              >
-                <Text strong>{formattedDate}</Text>
-                <Text>в</Text>
-                <Text strong>{formattedTime}</Text>
-              </div>
-            </div>
-
-            {/* Выбор длительности */}
-            <div style={{ marginTop: "16px" }}>
               <Text
                 strong
                 style={{
                   display: "block",
-                  marginBottom: "8px",
-                  fontSize: "16px",
+                  marginBottom: "16px",
+                  fontSize: "18px",
+                  color: "#ffffff",
                 }}
               >
-                Длительность посещения:
+                Выберите дату и время
               </Text>
               <div
-                style={{ display: "flex", alignItems: "center", gap: "16px" }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                  alignItems: "flex-start",
+                }}
               >
-                <button
-                  type="button"
-                  onClick={() => handleDurationChange(duration - 1)}
-                  disabled={duration <= 1}
-                  style={{
-                    padding: "6px 12px",
-                    border: "1px solid #d9d9d9",
-                    borderRadius: "4px",
-                    background: "#fff",
-                    cursor: duration > 1 ? "pointer" : "not-allowed",
-                    opacity: duration > 1 ? 1 : 0.5,
-                  }}
-                >
-                  -
-                </button>
-                <Text
-                  strong
-                  style={{
-                    minWidth: "50px",
-                    textAlign: "center",
-                    fontSize: "16px",
-                  }}
-                >
-                  {duration} ч
-                </Text>
-                <button
-                  type="button"
-                  onClick={() => handleDurationChange(duration + 1)}
-                  disabled={duration >= 4}
-                  style={{
-                    padding: "6px 12px",
-                    border: "1px solid #d9d9d9",
-                    borderRadius: "4px",
-                    background: "#fff",
-                    cursor: duration < 4 ? "pointer" : "not-allowed",
-                    opacity: duration < 4 ? 1 : 0.5,
-                  }}
-                >
-                  +
-                </button>
-                <Text type="secondary" style={{ fontSize: "14px" }}>
-                  (от 1 до 4 часов)
-                </Text>
+                <div style={{ width: "100%", maxWidth: "300px" }}>
+                  <DatePicker
+                    showTime
+                    format="DD.MM.YYYY HH:mm"
+                    value={selectedDateTime}
+                    onChange={handleDateTimeChange}
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#333",
+                      borderColor: "#444",
+                      color: "#ffffff",
+                    }}
+                    placeholder="Выберите дату и время"
+                    disabledDate={(current) =>
+                      current && current < dayjs().startOf("day")
+                    }
+                  />
+                </div>
+
+                <div style={{ width: "100%" }}>
+                  <Text
+                    strong
+                    style={{
+                      display: "block",
+                      marginBottom: "12px",
+                      fontSize: "16px",
+                      color: "#ffffff",
+                    }}
+                  >
+                    Длительность посещения
+                  </Text>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "20px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleDurationChange(duration - 1)}
+                        disabled={duration <= 1}
+                        style={{
+                          padding: "8px 16px",
+                          border: "1px solid #444",
+                          borderRadius: "6px",
+                          background: "#333",
+                          color: "#ffffff",
+                          cursor: duration > 1 ? "pointer" : "not-allowed",
+                          opacity: duration > 1 ? 1 : 0.5,
+                          fontSize: "16px",
+                        }}
+                      >
+                        -
+                      </button>
+                      <Text
+                        strong
+                        style={{
+                          minWidth: "50px",
+                          textAlign: "center",
+                          fontSize: "20px",
+                          color: "#ff9500",
+                        }}
+                      >
+                        {duration} ч
+                      </Text>
+                      <button
+                        type="button"
+                        onClick={() => handleDurationChange(duration + 1)}
+                        disabled={duration >= 4}
+                        style={{
+                          padding: "8px 16px",
+                          border: "1px solid #444",
+                          borderRadius: "6px",
+                          background: "#333",
+                          color: "#ffffff",
+                          cursor: duration < 4 ? "pointer" : "not-allowed",
+                          opacity: duration < 4 ? 1 : 0.5,
+                          fontSize: "16px",
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: "14px", color: "#cccccc" }}
+                    >
+                      (от 1 до 4 часов)
+                    </Text>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <BookingGrid>
-            <MapContainer>
-              <MapHeader>
-                <MapTitle>План ресторана</MapTitle>
-                <Legend>
-                  <LegendItem>
-                    <LegendColor color="#52c41a" />
-                    <span>Свободно</span>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendColor color="#faad14" />
-                    <span>Ожидает оплаты</span>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendColor color="#ff4d4f" />
-                    <span>Занято</span>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendColor color="#1890ff" />
-                    <span>Выбрано</span>
-                  </LegendItem>
-                </Legend>
-              </MapHeader>
+            <BookingGrid>
+              <MapContainer>
+                <MapHeader>
+                  <MapTitle>План ресторана</MapTitle>
+                  <Legend>
+                    <LegendItem>
+                      <LegendColor color="#52c41a" />
+                      <span>Свободно</span>
+                    </LegendItem>
+                    <LegendItem>
+                      <LegendColor color="#faad14" />
+                      <span>Ожидает оплаты</span>
+                    </LegendItem>
+                    <LegendItem>
+                      <LegendColor color="#ff4d4f" />
+                      <span>Занято</span>
+                    </LegendItem>
+                    <LegendItem>
+                      <LegendColor color="#1890ff" />
+                      <span>Выбрано</span>
+                    </LegendItem>
+                  </Legend>
+                </MapHeader>
 
-              <MapWrapper>
-                {loading ? (
-                  <LoadingOverlay>
-                    <LoadingText>Загрузка плана...</LoadingText>
-                  </LoadingOverlay>
-                ) : (
-                  <CanvasWrapper>
-                    <Stage
-                      width={CANVAS_SIZE.width}
-                      height={CANVAS_SIZE.height}
-                    >
-                      <Layer>
-                        {layoutItems
-                          .filter((item) => item.type !== "table")
-                          .map(renderItem)}
+                <MapWrapper>
+                  {loading ? (
+                    <LoadingOverlay>
+                      <LoadingText>Загрузка плана...</LoadingText>
+                    </LoadingOverlay>
+                  ) : (
+                    <>
+                      <StageContainer>
+                        <Stage
+                          width={CANVAS_SIZE.width}
+                          height={CANVAS_SIZE.height}
+                        >
+                          <Layer>
+                            {layoutItems
+                              .filter((item) => item.type !== "table")
+                              .map(renderItem)}
 
-                        {layoutItems
-                          .filter(
-                            (item): item is TableItem => item.type === "table"
-                          )
-                          .map(renderItem)}
-                      </Layer>
-                    </Stage>
-                  </CanvasWrapper>
-                )}
-              </MapWrapper>
-            </MapContainer>
+                            {layoutItems
+                              .filter(
+                                (item): item is TableItem =>
+                                  item.type === "table"
+                              )
+                              .map(renderItem)}
+                          </Layer>
+                        </Stage>
+                      </StageContainer>
 
-            <FormContainer id="booking-form">
-              <BookingForm
-                selectedTable={selectedTable}
-                selectedDateTime={selectedDateTime}
-                onDateTimeChange={handleDateTimeChange}
-                restaurantName={restaurantName}
-                duration={duration}
-                onDurationChange={handleDurationChange}
-                isBooked={
-                  selectedTable
-                    ? getTableBookingInfo(selectedTable).isBooked
-                    : false
-                }
-                hasPendingReservation={
-                  selectedTable
-                    ? !!getPendingReservationForTable(selectedTable.tableId)
-                    : false
-                }
-                bookingInfo={
-                  selectedTable ? getTableBookingInfo(selectedTable) : undefined
-                }
-                onReserve={handleReserve}
-              />
-            </FormContainer>
-          </BookingGrid>
-        </BookingContent>
-      </BookingContainer>
+                      {showScrollHint && (
+                        <ScrollHint>
+                          <span>↕️</span>
+                          Используйте скролл для навигации по плану
+                        </ScrollHint>
+                      )}
+                    </>
+                  )}
+                </MapWrapper>
+              </MapContainer>
+
+              <FormContainer id="booking-form">
+                <BookingForm
+                  selectedTable={selectedTable}
+                  selectedDateTime={selectedDateTime}
+                  onDateTimeChange={handleDateTimeChange}
+                  restaurantName={restaurantName}
+                  duration={duration}
+                  onDurationChange={handleDurationChange}
+                  isBooked={
+                    selectedTable
+                      ? getTableBookingInfo(selectedTable).isBooked
+                      : false
+                  }
+                  hasPendingReservation={
+                    selectedTable
+                      ? !!getPendingReservationForTable(selectedTable.tableId)
+                      : false
+                  }
+                  bookingInfo={
+                    selectedTable
+                      ? getTableBookingInfo(selectedTable)
+                      : undefined
+                  }
+                  onReserve={handleReserve}
+                  showModal={showModal}
+                  showError={showError}
+                  showWarning={showWarning}
+                  showInfo={showInfo}
+                />
+                <CartBookingSection />
+              </FormContainer>
+            </BookingGrid>
+          </BookingContent>
+        </BookingContainer>
+
+        {/* Модальное окно */}
+        <Modal
+          isOpen={modalOpen}
+          onClose={closeModal}
+          onConfirm={modalOnConfirm}
+          title={modalTitle}
+          message={modalMessage}
+          confirmText={modalConfirmText}
+          cancelText={modalType === "info" ? undefined : "Отмена"}
+          type={modalType}
+        />
+      </>
     );
   }
 );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PATHS } from "../paths";
+import { api } from "../shared/lib/axios";
 import {
   Container,
   VerificationCard,
@@ -18,11 +19,10 @@ import {
   InputLabel,
   SmsInput,
   Button,
-  Timer,
-  ResendLink,
 } from "../styled/SmsVerification.styles";
 
 interface BookingData {
+  reservation_id: number;
   restaurant: string;
   date: string;
   time: string;
@@ -43,6 +43,8 @@ interface LocationState {
   bookingData: BookingData;
   paymentData: PaymentData;
   generatedSmsCode: string;
+  verificationToken: string;
+  paymentId: string;
 }
 
 const SmsVerificationPage: React.FC = () => {
@@ -56,14 +58,22 @@ const SmsVerificationPage: React.FC = () => {
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [generatedSmsCode, setGeneratedSmsCode] = useState<string>("");
+  const [verificationToken, setVerificationToken] = useState<string>("");
+  const [paymentId, setPaymentId] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
     if (location.state) {
       const state = location.state as LocationState;
+      console.log("State received:", state);
+
       setBookingData(state.bookingData);
       setPaymentData(state.paymentData);
-      setGeneratedSmsCode(state.generatedSmsCode);
+      setGeneratedSmsCode(state.generatedSmsCode || "");
+      setVerificationToken(state.verificationToken || "");
+      setPaymentId(state.paymentId || "");
     } else {
+      console.error("No state in location!");
       navigate(PATHS.PAYMENT);
     }
 
@@ -82,35 +92,75 @@ const SmsVerificationPage: React.FC = () => {
 
   const verifyCode = async (code: string) => {
     setLoading(true);
+    setErrorMessage("");
 
-    // Валидация кода
     if (code.length !== 3 || !/^\d{3}$/.test(code)) {
-      alert("Неверный формат кода. Введите 3 цифры");
+      setErrorMessage("Неверный формат кода. Введите 3 цифры");
+      setLoading(false);
+      return;
+    }
+
+    if (!verificationToken) {
+      setErrorMessage("Ошибка: отсутствует токен верификации");
+      setLoading(false);
+      return;
+    }
+
+    if (!paymentId) {
+      setErrorMessage("Ошибка: отсутствует ID платежа");
       setLoading(false);
       return;
     }
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Sending verification request:", {
+        verification_token: verificationToken,
+        sms_code: code,
+        payment_id: paymentId,
+      });
 
-      if (code === generatedSmsCode) {
+      const response = await api.post("/payments/verify-sms", {
+        verification_token: verificationToken,
+        sms_code: code,
+        payment_id: parseInt(paymentId),
+      });
+
+      console.log("Server response:", response.data);
+
+      if (response.data.success) {
         navigate(PATHS.PAYMENT_RESULT, {
           state: {
             success: true,
-            paymentId:
-              "PAY_" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+            result_token: response.data.result_token,
+            paymentId: paymentId,
             bookingData: bookingData,
             paymentData: paymentData,
+            message: "Платеж успешно подтвержден!",
           },
         });
       } else {
-        alert("Неверный код подтверждения");
+        setErrorMessage(`Ошибка: ${response.data.message || "Неверный код"}`);
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(`Ошибка подтверждения: ${error.message}`);
+    } catch (error: any) {
+      console.error("Verification error:", error);
+
+      if (error.response?.status === 422) {
+        const errorData = error.response.data;
+        if (errorData.errors) {
+          const errors = Object.values(errorData.errors).flat().join(", ");
+          setErrorMessage(`Ошибка валидации: ${errors}`);
+        } else if (errorData.message) {
+          setErrorMessage(`Ошибка: ${errorData.message}`);
+        }
+      } else if (error.response?.status === 401) {
+        setErrorMessage("Ошибка аутентификации. Пожалуйста, войдите снова.");
+        setTimeout(() => navigate(PATHS.LOGIN), 2000);
+      } else if (error.response?.data?.message) {
+        setErrorMessage(`Ошибка: ${error.response.data.message}`);
       } else {
-        alert("Произошла неизвестная ошибка");
+        setErrorMessage(
+          "Произошла ошибка при проверке кода. Проверьте соединение."
+        );
       }
     } finally {
       setLoading(false);
@@ -124,36 +174,22 @@ const SmsVerificationPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
-    const value = input.value.replace(/\D/g, "").slice(0, 3); 
+    const value = input.value.replace(/\D/g, "").slice(0, 3); // 3 цифры!
 
     setSmsCode(value);
-
-   
+    setErrorMessage("");
     if (value.length === 3) {
-      
       setTimeout(() => {
         input.blur();
-      }, 0);
-
-      setTimeout(() => {
         verifyCode(value);
-      }, 500);
+      }, 100);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
- 
     if (smsCode.length >= 3 && e.key !== "Backspace" && e.key !== "Delete") {
       e.preventDefault();
     }
-  };
-
-  const handleResendCode = () => {
-    setTimer(60);
-    setCanResend(false);
-    setSmsCode("");
-    setGeneratedSmsCode(Math.floor(100 + Math.random() * 900).toString());
-    alert("Новый код отправлен");
   };
 
   if (!bookingData || !paymentData) {
@@ -171,8 +207,8 @@ const SmsVerificationPage: React.FC = () => {
       <VerificationCard>
         <Title>Подтверждение платежа</Title>
         <Subtitle>
-          Для завершения оплаты введите код подтверждения, отправленный в SMS
-          сообщении
+          Для завершения оплаты введите 3-значный код подтверждения,
+          отправленный в SMS
         </Subtitle>
 
         <PaymentInfo>
@@ -198,13 +234,15 @@ const SmsVerificationPage: React.FC = () => {
 
         <CodeDisplay>
           <CodeLabel>Тестовый код подтверждения</CodeLabel>
-          <GeneratedCode>{generatedSmsCode}</GeneratedCode>
-          <Instruction>Используйте этот код для тестирования</Instruction>
+          <GeneratedCode>{generatedSmsCode || "..."}</GeneratedCode>
+          <Instruction>
+            Используйте этот 3-значный код для тестирования
+          </Instruction>
         </CodeDisplay>
 
         <form onSubmit={handleSubmit}>
           <InputContainer>
-            <InputLabel>Введите код из SMS</InputLabel>
+            <InputLabel>Введите 3-значный код из SMS</InputLabel>
             <SmsInput
               type="text"
               value={smsCode}
@@ -215,7 +253,15 @@ const SmsVerificationPage: React.FC = () => {
               inputMode="numeric"
               pattern="[0-9]*"
               autoFocus
+              disabled={loading}
             />
+            {errorMessage && (
+              <div
+                style={{ color: "#ff4444", marginTop: "8px", fontSize: "14px" }}
+              >
+                {errorMessage}
+              </div>
+            )}
           </InputContainer>
 
           <Button type="submit" disabled={loading || smsCode.length !== 3}>
@@ -223,15 +269,14 @@ const SmsVerificationPage: React.FC = () => {
           </Button>
         </form>
 
-        <Timer>
-          {timer > 0
-            ? `Запросить новый код можно через ${timer} сек.`
-            : "Можно запросить новый код"}
-        </Timer>
-
-        <ResendLink onClick={handleResendCode} disabled={!canResend}>
-          Отправить код повторно
-        </ResendLink>
+        <div
+          style={{
+            marginTop: "20px",
+            fontSize: "12px",
+            color: "#666",
+            textAlign: "center",
+          }}
+        ></div>
       </VerificationCard>
     </Container>
   );

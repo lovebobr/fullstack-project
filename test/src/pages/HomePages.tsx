@@ -14,8 +14,6 @@ import {
   ContactTitle,
   Day,
   DayTimeContainer,
-  Footer,
-  FooterText,
   HeroContent,
   HeroDescription,
   HeroOverlay,
@@ -34,7 +32,6 @@ import {
   Mood,
   NoteText,
   Notes,
-  OutlineButton,
   PhoneLine,
   ScheduleContainer,
   SectionTitle,
@@ -132,25 +129,12 @@ const HomePage: React.FC = () => {
           <ContactGradient>
             <ContactContent>
               <ContactTitle>Ждем вас в нашем ресторане</ContactTitle>
-              <ContactInfo>
-                <AddressLine>
-                  <MapPin size={18} />
-                  3000 Wymdolite Street East Lower Winbatch ON NW 3B2
-                </AddressLine>
-                <PhoneLine>
-                  <PhoneIcon size={18} />
-                  +1 (326) 234-9932
-                </PhoneLine>
-              </ContactInfo>
+
               <Button onClick={handleBookTable}>Забронировать стол</Button>
             </ContactContent>
           </ContactGradient>
         </ContactSection>
       </MainContent>
-
-      <Footer>
-        <FooterText>Сережка 2025</FooterText>
-      </Footer>
     </HomeContainer>
   );
 };

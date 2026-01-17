@@ -17,6 +17,9 @@ import {
   MapPin,
   Table as TableIcon,
   CreditCard,
+  ChefHat,
+  Package,
+  ShoppingCart,
 } from "lucide-react";
 import Header from "../app/component/Header";
 import { Modal } from "../app/component/ModalConfirm";
@@ -73,12 +76,32 @@ import {
   ActionButtonsRow,
   ActionButton,
   EmptyReservations,
+  FoodItemsSection,
+  FoodItemsHeader,
+  FoodItemsList,
+  FoodItemCard,
+  FoodItemImage,
+  FoodItemDetails,
+  FoodItemName,
+  FoodItemPrice,
+  FoodItemQuantity,
+  FoodItemTotal,
+  NoFoodItems,
+  FoodSummary,
+  SummaryItem,
+  SummaryLabel,
+  SummaryValue,
+  FoodItemDescription,
+  FoodItemInfo,
 } from "../styled/Profile.styles";
 
 export const Profile = observer(() => {
   const navigate = useNavigate();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
+  const [expandedReservations, setExpandedReservations] = useState<Set<string>>(
+    new Set()
+  );
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "danger";
@@ -101,7 +124,6 @@ export const Profile = observer(() => {
     profileStore.loadProfile();
   }, []);
 
-  // Функции для работы с модалкой
   const showModal = useCallback(
     (modalProps: {
       type: "info" | "warning" | "danger";
@@ -203,6 +225,18 @@ export const Profile = observer(() => {
     profileStore.loadReservationHistory();
   }, []);
 
+  const toggleFoodItems = useCallback((reservationId: string) => {
+    setExpandedReservations((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(reservationId)) {
+        newSet.delete(reservationId);
+      } else {
+        newSet.add(reservationId);
+      }
+      return newSet;
+    });
+  }, []);
+
   const handleCancelReservation = useCallback(
     (reservationId: string) => {
       showModal({
@@ -219,7 +253,6 @@ export const Profile = observer(() => {
             );
 
             if (result.success) {
-              // Обновляем список бронирований
               await profileStore.loadReservationHistory();
 
               showModal({
@@ -274,6 +307,7 @@ export const Profile = observer(() => {
       pending: "Ожидание оплаты",
       confirmed: "Подтверждено",
       cancelled: "Отменено",
+      completed: "Завершено",
     };
     return statusMap[status] || status;
   };
@@ -283,9 +317,115 @@ export const Profile = observer(() => {
       pending: { bg: "rgba(255, 149, 0, 0.2)", text: "#ff9500" },
       confirmed: { bg: "rgba(39, 174, 96, 0.2)", text: "#27ae60" },
       cancelled: { bg: "rgba(220, 53, 69, 0.2)", text: "#dc3545" },
+      completed: { bg: "rgba(108, 117, 125, 0.2)", text: "#6c757d" },
     };
     return (
       colorMap[status] || { bg: "rgba(108, 117, 125, 0.2)", text: "#6c757d" }
+    );
+  };
+
+  const renderFoodItems = (foods: any[], reservationId: string) => {
+    if (!foods || foods.length === 0) {
+      return (
+        <NoFoodItems>
+          <Package size={24} />
+          <span>Нет заказанных блюд</span>
+        </NoFoodItems>
+      );
+    }
+
+    const foodsTotal = foods.reduce(
+      (sum, item) => sum + (item.price || 0) * (item.pivot?.quantity || 1),
+      0
+    );
+
+    return (
+      <FoodItemsSection>
+        <FoodItemsHeader onClick={() => toggleFoodItems(reservationId)}>
+          <div>
+            <ChefHat size={16} />
+            <span>Заказанные блюда ({foods.length})</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "14px", color: "#adb5bd" }}>
+              {expandedReservations.has(reservationId) ? "Скрыть" : "Показать"}
+            </span>
+            <div
+              style={{
+                transform: expandedReservations.has(reservationId)
+                  ? "rotate(180deg)"
+                  : "rotate(0deg)",
+                transition: "transform 0.3s",
+              }}
+            >
+              ▼
+            </div>
+          </div>
+        </FoodItemsHeader>
+
+        {expandedReservations.has(reservationId) && (
+          <>
+            <FoodItemsList>
+              {foods.map((food, index) => {
+                const quantity = food.pivot?.quantity || 1;
+                const price = food.price || 0;
+                const total = price * quantity;
+
+                return (
+                  <FoodItemCard key={`${food.id}-${index}`}>
+                    {food.image_url && (
+                      <FoodItemImage
+                        src={food.image_url}
+                        alt={food.name}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    )}
+                    <FoodItemDetails>
+                      <FoodItemInfo>
+                        <FoodItemName>{food.name}</FoodItemName>
+                        {food.description && (
+                          <FoodItemDescription>
+                            {food.description}
+                          </FoodItemDescription>
+                        )}
+                      </FoodItemInfo>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "16px",
+                        }}
+                      >
+                        <FoodItemQuantity>
+                          <span>×{quantity}</span>
+                        </FoodItemQuantity>
+                        <FoodItemPrice>{price} ₽</FoodItemPrice>
+                        <FoodItemTotal>{total} ₽</FoodItemTotal>
+                      </div>
+                    </FoodItemDetails>
+                  </FoodItemCard>
+                );
+              })}
+            </FoodItemsList>
+
+            <FoodSummary>
+              <SummaryItem>
+                <SummaryLabel>
+                  <ShoppingCart size={14} />
+                  Количество блюд:
+                </SummaryLabel>
+                <SummaryValue>{foods.length}</SummaryValue>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryLabel>Сумма за блюда:</SummaryLabel>
+                <SummaryValue>{foodsTotal} ₽</SummaryValue>
+              </SummaryItem>
+            </FoodSummary>
+          </>
+        )}
+      </FoodItemsSection>
     );
   };
 
@@ -334,10 +474,12 @@ export const Profile = observer(() => {
               {value || <EmptyValue>Не указано</EmptyValue>}
             </FieldValue>
             <ActionButtons>
-              <EditButton onClick={() => startEditing(fieldName, value)}>
-                <Edit size={14} />
-                Редактировать
-              </EditButton>
+              {isAdmin && (
+                <EditButton onClick={() => startEditing(fieldName, value)}>
+                  <Edit size={14} />
+                  Редактировать
+                </EditButton>
+              )}
             </ActionButtons>
           </>
         )}
@@ -345,7 +487,6 @@ export const Profile = observer(() => {
     );
   };
 
-  // Если идет загрузка
   if (profileStore.loading) {
     return (
       <ProfileContainer>
@@ -358,7 +499,6 @@ export const Profile = observer(() => {
     );
   }
 
-  // Если ошибка при загрузке
   if (profileStore.error && !profileStore.profileData) {
     return (
       <ProfileContainer>
@@ -377,7 +517,6 @@ export const Profile = observer(() => {
     );
   }
 
-  // Если данных профиля нет
   if (!profileStore.profileData) {
     return (
       <ProfileContainer>
@@ -425,7 +564,6 @@ export const Profile = observer(() => {
             </ProfileError>
           )}
 
-          {/* Основная информация */}
           <Section>
             <SectionTitle>
               <User size={20} />
@@ -454,7 +592,6 @@ export const Profile = observer(() => {
             </FieldGrid>
           </Section>
 
-          {/* Раздел бронирований */}
           {!isAdmin && (
             <Section>
               <SectionHeader>
@@ -489,6 +626,9 @@ export const Profile = observer(() => {
                     const canCancel =
                       (isPending || isActive) &&
                       reservation.status !== "cancelled";
+
+                    const hasFoods =
+                      reservation.foods && reservation.foods.length > 0;
 
                     return (
                       <ReservationCard
@@ -597,6 +737,10 @@ export const Profile = observer(() => {
                           </SpecialRequests>
                         )}
 
+                        {/* Секция с заказанными блюдами */}
+                        {hasFoods &&
+                          renderFoodItems(reservation.foods, reservation.id)}
+
                         <ActionButtonsRow>
                           {isPending && (
                             <ActionButton
@@ -632,7 +776,9 @@ export const Profile = observer(() => {
                             <ActionButton
                               $variant="danger"
                               onClick={() =>
-                                handleCancelReservation(reservation.id)
+                                handleCancelReservation(
+                                  reservation.id.toString()
+                                )
                               }
                             >
                               <X size={14} />

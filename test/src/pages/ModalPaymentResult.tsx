@@ -6,7 +6,6 @@ import {
   SuccessModal,
   AnimatedCheckmark,
   Title,
-  Subtitle,
   PaymentDetails,
   DetailRow,
   DetailLabel,
@@ -65,11 +64,11 @@ const ModalPaymentResult: React.FC = () => {
   }, [location.state, navigate]);
 
   const handleNewBooking = () => {
-    navigate(PATHS.HOME); 
+    navigate(PATHS.HOME);
   };
 
   const handleViewBookings = () => {
-    navigate(PATHS.USER); 
+    navigate(PATHS.PROFILE);
   };
 
   if (!bookingData || !paymentData) {
@@ -99,10 +98,6 @@ const ModalPaymentResult: React.FC = () => {
         </AnimatedCheckmark>
 
         <Title>Оплата прошла успешно!</Title>
-        <Subtitle>
-          Ваше бронирование подтверждено. Детали оплаты и бронирования
-          отправлены на вашу почту.
-        </Subtitle>
 
         <AmountHighlight>
           {paymentData.amount} {paymentData.currency}
@@ -141,9 +136,7 @@ const ModalPaymentResult: React.FC = () => {
           <SecondaryButton onClick={handleNewBooking}>
             На главную
           </SecondaryButton>
-          <PrimaryButton onClick={handleViewBookings}>
-            Личный кабинет
-          </PrimaryButton>
+          <PrimaryButton onClick={handleViewBookings}>Профиль</PrimaryButton>
         </ButtonGroup>
       </SuccessModal>
     </Container>
